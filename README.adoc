@@ -1,0 +1,31 @@
+----
+           88                              88
+           88                              88
+           88                              88
+ ,adPPYba, 88          ,adPPYYba,  ,adPPYb,88  ,adPPYba,   ,adPPYba,
+a8"     "" 88 aaaaaaaa ""     `Y8 a8"    `Y88 a8"     "8a a8"     ""
+8b         88 """""""" ,adPPPPP88 8b       88 8b       d8 8b
+"8a,   ,aa 88          88,    ,88 "8a,   ,d88 "8a,   ,a8" "8a,   ,aa
+ `"Ybbd8"' 88          `"8bbdP"Y8  `"8bbdP"Y8  `"YbbdP"'   `"Ybbd8"'
+----
+
+=======
+
+cl-adoc is an AsciiDoc parser and HTML5 renderer for Common Lisp. It targets
+the documented feature subset of asciidoctor-go, plus native STEM/math
+support. It is young and still finding its shape.
+
+cl-adoc is managed with ocicl. Within a project directory, run:
+
+	ocicl install cl-adoc
+
+The supported language subset, and what is deliberately left out and why,
+is documented in SPEC.adoc.
+
+Try it at the SBCL REPL:
+
+	(ocicl:setup)
+	(asdf:load-system :cl-adoc)
+	(adoc:parse-file "example.adoc")
+
+To be built, cl-adoc requires SBCL 2.4 or later and ocicl.
