@@ -14,17 +14,7 @@ a8"     "" 88 aaaaaaaa ""     `Y8 a8"    `Y88 a8"     "8a a8"     ""
 cl-adoc is an AsciiDoc parser and HTML5 renderer for Common Lisp. It is young
 and still finding its shape.
 
-cl-adoc is managed with ocicl. Within a project directory, run:
-
-	ocicl install cl-adoc
-
 The supported language subset, and what is deliberately left out and why,
 is documented in SPEC.adoc.
-
-Try it at the SBCL REPL:
-
-	(ocicl:setup)
-	(asdf:load-system :cl-adoc)
-	(adoc:parse-file "example.adoc")
 
 To be built, cl-adoc requires SBCL 2.4 or later and ocicl.

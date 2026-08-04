@@ -1,0 +1,13 @@
+A listing block holds its contents verbatim.
+
+[source,lisp]
+----
+(defun greet (name)
+  (format t "hello, ~a~%" name))
+----
+
+Without a language attribute the block is still literal, just untagged.
+
+----
+*not bold*  _not italic_  <not a tag>
+----

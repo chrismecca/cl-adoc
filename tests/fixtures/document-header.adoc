@@ -1,0 +1,10 @@
+= A Document With a Header
+:author: Chris Mecca
+:date: 2026-08-04
+
+The header ends at the first line that is neither a title nor an attribute
+entry, so this paragraph is the first block of the body.
+
+== A Section
+
+Sections carry a generated identifier derived from their text.

@@ -1,0 +1,13 @@
+Ordinary prose with *bold*, _italic_, and `monospace` spans.
+
+Formatting nests, so *bold text with _italic_ inside* renders as both.
+
+A code span is literal: `foo_bar_baz` keeps its underscores and `*stars*`
+keeps its stars.
+
+Delimiters only open a span at a word boundary, which leaves snake_case_names
+and arithmetic like 2 * 3 * 4 alone.
+
+A backslash escapes a delimiter, so \*this\* is not bold.
+
+Text that means something to HTML is escaped on the way out: a < b && c > d.

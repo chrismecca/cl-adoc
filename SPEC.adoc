@@ -16,9 +16,9 @@ Status markers used below:
 == Document Header
 
 * Document title (single-line `=` form)
-* Author line, single author
 * `:key: value` attribute entries
-* Attribute references elsewhere in the document (`{key}`)
+* *(?)* Author line, single author
+* *(?)* Attribute references elsewhere in the document (`{key}`)
 * *(X)* Multi-author lines. Rationale: rare for the kind of writing this
   targets; revisit if the collective grows past a few contributors sharing
   a byline.
@@ -32,17 +32,25 @@ Status markers used below:
 
 == Paragraphs and Text Formatting
 
-* Paragraphs, hard line breaks
+* Paragraphs
 * Bold (`*text*`), italic (`_text_`), monospace (`` `text` ``)
+* A delimiter only opens a span at a word boundary, so `snake_case_name`
+  and arithmetic like `2 * 3 * 4` are left alone
+* Monospace content is literal — no formatting is recognized inside a code
+  span, so `` `foo_bar_baz` `` keeps its underscores. This departs from
+  Asciidoctor, which does substitute inside backticks. Rationale: a code
+  span exists to show text exactly as it was written, and re-reading its
+  contents as markup is the specific bug this parser was built to avoid.
+* *(?)* Hard line breaks
 * *(?)* Subscript and superscript
 
 == Lists
 
-* Unordered lists, single marker: `*`
-* Ordered lists, single marker: `.`
-* Checklists (`[ ]`, `[x]`) — note: literal bracket text at the start of a
-  list item must be escaped (`\[ ]`), since this exact position is where
-  checklist syntax is recognized.
+* *(?)* Unordered lists, single marker: `*`
+* *(?)* Ordered lists, single marker: `.`
+* *(?)* Checklists (`[ ]`, `[x]`) — note: literal bracket text at the start
+  of a list item must be escaped (`\[ ]`), since this exact position is
+  where checklist syntax is recognized.
 * *(X)* Hyphen-marker unordered lists (`-`). Rationale: ambiguous once
   quoted paragraphs or em dashes enter the picture — a line starting with
   `-` could be a new list item or a continuation of prose. One marker, no
@@ -53,24 +61,24 @@ Status markers used below:
 
 == Links and Images
 
-* Autolinks, bare URLs
-* Link macro: `link:url[text]`
-* Block image macro: `image::path[alt text]`
+* *(?)* Autolinks, bare URLs
+* *(?)* Link macro: `link:url[text]`
+* *(?)* Block image macro: `image::path[alt text]`
 * *(?)* Inline images
 * *(X)* Audio and video macros. Rationale: no current use case; the
   two-lane writing/hobby content this targets is text- and image-first.
 
 == Admonitions
 
-* `NOTE:`, `TIP:`, `WARNING:`, `IMPORTANT:`, `CAUTION:`, single-paragraph
-  form only
+* *(?)* `NOTE:`, `TIP:`, `WARNING:`, `IMPORTANT:`, `CAUTION:`,
+  single-paragraph form only
 
 == Blocks
 
 * Delimited listing blocks (`----`)
 * Source blocks with a language attribute (`[source,lang]`)
-* Delimited STEM/math blocks (`++++`) and inline `stem:[...]`
-* Blockquotes (`> `, line-prefixed form)
+* *(?)* Delimited STEM/math blocks (`++++`) and inline `stem:[...]`
+* *(?)* Blockquotes (`> `, line-prefixed form)
 * *(X)* Sidebars, example blocks, open blocks. Rationale: no content has
   needed them yet; straightforward to add when something does.
 * *(X)* Callouts in source blocks. Rationale: requires per-language
@@ -80,8 +88,8 @@ Status markers used below:
 
 == Tables
 
-* Basic `|===` delimited tables, pipe-separated cells
-* First row as header
+* *(?)* Basic `|===` delimited tables, pipe-separated cells
+* *(?)* First row as header
 * *(X)* Nested tables. Rationale: nested tables are close to always the
   wrong way to present information; if the data needs that, it needs a
   different shape, not a table.
@@ -105,7 +113,9 @@ Status markers used below:
 
 == Substitutions
 
-* Special character escaping in source/listing blocks
-* Passthrough blocks (`++++`), shared with STEM
+* Special character escaping, both in source/listing blocks and in
+  ordinary paragraph text
+* Backslash escapes for inline formatting delimiters
+* *(?)* Passthrough blocks (`++++`), shared with STEM
 * *(X)* Custom substitution ordering per block. Rationale: an escape
   hatch for a problem this document set hasn't hit yet.
