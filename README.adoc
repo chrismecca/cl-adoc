@@ -1,3 +1,5 @@
+:doctitle: cl-adoc
+
 ----
            88                              88
            88                              88
@@ -9,11 +11,8 @@ a8"     "" 88 aaaaaaaa ""     `Y8 a8"    `Y88 a8"     "8a a8"     ""
  `"Ybbd8"' 88          `"8bbdP"Y8  `"8bbdP"Y8  `"YbbdP"'   `"Ybbd8"'
 ----
 
-=======
-
-cl-adoc is an AsciiDoc parser and HTML5 renderer for Common Lisp. It targets
-the documented feature subset of asciidoctor-go, plus native STEM/math
-support. It is young and still finding its shape.
+cl-adoc is an AsciiDoc parser and HTML5 renderer for Common Lisp. It is young
+and still finding its shape.
 
 cl-adoc is managed with ocicl. Within a project directory, run:
 
