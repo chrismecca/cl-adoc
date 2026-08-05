@@ -129,6 +129,14 @@ rather than carrying an empty one."
     (make-inline-image :target target
                        :alt (first (parse-attribute-list text)))))
 
+;; Mathematics is literal for the same reason a code span is: notation is made
+;; of the very characters that mean something to the inline grammar.
+(defrule inline-stem
+    (and left-boundary "stem:" bracketed-text)
+  (:destructure (boundary prefix text)
+    (declare (ignore boundary prefix))
+    (make-inline-stem :text text)))
+
 ;;; Autolinks
 ;;;
 ;;; The hard part of a bare URL is knowing where it stops. "See https://x.com/a."
@@ -168,7 +176,8 @@ rather than carrying an empty one."
 ;;; typed rather than failing the parse.
 
 (defrule inline-element
-    (or escaped monospace link inline-image autolink strong emphasis character))
+    (or escaped monospace link inline-image inline-stem autolink
+        strong emphasis character))
 
 (defrule inline-content
     (* inline-element)
@@ -211,6 +220,7 @@ Used for deriving heading identifiers, where markup has no meaning."
                  (strong (mapc #'walk (strong-content node)))
                  (emphasis (mapc #'walk (emphasis-content node)))
                  (link (mapc #'walk (link-content node)))
+                 (inline-stem (write-string (inline-stem-text node) out))
                  ;; An image contributes its alt text, which is the only part
                  ;; of it that is words.
                  (inline-image (write-string (or (inline-image-alt node) "") out)))))

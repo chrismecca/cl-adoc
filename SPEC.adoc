@@ -94,7 +94,17 @@ Status markers used below:
 
 * Delimited listing blocks (`----`)
 * Source blocks with a language attribute (`[source,lang]`)
-* *(?)* Delimited STEM/math blocks (`++++`) and inline `stem:[...]`
+* Delimited STEM/math blocks (`++++`) and inline `stem:[...]`. Notation is
+  literal, like a code span, so `stem:[a_1 * b_2]` keeps its underscore and
+  asterisk. cl-adoc does not read the notation, only hand it to whatever
+  renders mathematics on the page.
+* A bare `++++` block is mathematics. Asciidoctor treats it as passthrough
+  instead, and `[pass]` is how you ask for that here. Rationale: math is why
+  this project chose AsciiDoc, and raw markup is the rarer thing to want.
+* `[stem]` may be written above the block, and says what the bare delimiter
+  already said
+* Inline `stem:[...]` ends at the first `]`, so notation containing a
+  closing bracket belongs in a block rather than in a line
 * Blockquotes (`> `, line-prefixed form). A bare `>` separates one paragraph
   of a quotation from the next; the space after the marker is required, so a
   line opening `>text` is prose.
@@ -136,6 +146,9 @@ Status markers used below:
 * Special character escaping, both in source/listing blocks and in
   ordinary paragraph text
 * Backslash escapes for inline formatting delimiters
-* *(?)* Passthrough blocks (`++++`), shared with STEM
+* Passthrough blocks, written `[pass]` above a `++++` block. The contents
+  reach the output untouched, escaping included — the one construct that
+  emits markup cl-adoc did not generate, which is why it has to be asked
+  for by name rather than being the default for the delimiter.
 * *(X)* Custom substitution ordering per block. Rationale: an escape
   hatch for a problem this document set hasn't hit yet.

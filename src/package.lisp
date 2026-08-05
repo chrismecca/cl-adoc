@@ -58,6 +58,12 @@
    #:blockquote
    #:blockquote-p
    #:blockquote-content
+   #:block-stem
+   #:block-stem-p
+   #:block-stem-text
+   #:passthrough
+   #:passthrough-p
+   #:passthrough-text
 
    ;; Inline nodes
    #:inline-node
@@ -81,6 +87,9 @@
    #:inline-image-p
    #:inline-image-target
    #:inline-image-alt
+   #:inline-stem
+   #:inline-stem-p
+   #:inline-stem-text
 
    ;; Rendering
    #:backend
