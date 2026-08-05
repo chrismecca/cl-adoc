@@ -65,6 +65,24 @@ opening delimiter, so it cannot be mistaken for a bullet."
   "True when LINE opens an ordered list item."
   (and (item-content line #\.) t))
 
+(defparameter +block-image-prefix+ "image::"
+  "Prefix marking a line as the block form of the image macro.")
+
+(defun parse-block-image-line (line)
+  "Return the target and raw attribute text of an image:: line, or NIL.
+The bracket has to close on the last character of the line, which is what
+separates a block macro from a line of prose that merely mentions one."
+  (let ((prefix-length (length +block-image-prefix+)))
+    (when (and line
+               (> (length line) prefix-length)
+               (string= +block-image-prefix+ line :end2 prefix-length))
+      (let ((open (position #\[ line :start prefix-length)))
+        (when (and open (> open prefix-length))
+          (let ((close (position #\] line :start (1+ open))))
+            (when (and close (= close (1- (length line))))
+              (values (subseq line prefix-length open)
+                      (subseq line (1+ open) close)))))))))
+
 (defun block-boundary-p (line)
   "True when LINE cannot be a continuation of the paragraph in progress."
   (or (blank-line-p line)
@@ -72,6 +90,7 @@ opening delimiter, so it cannot be mistaken for a bullet."
       (listing-delimiter-p line)
       (unordered-item-p line)
       (ordered-item-p line)
+      (and (parse-block-image-line line) t)
       (and (source-attribute-line-p line) t)))
 
 ;;; Individual constructs
@@ -113,6 +132,14 @@ opening delimiter, so it cannot be mistaken for a bullet."
           do (push (next-line reader) collected))
     (make-paragraph :line line-number
                     :content (parse-inline (format nil "~{~a~^~%~}" (nreverse collected))))))
+
+(defun read-block-image (reader)
+  "Consume an image:: line from READER."
+  (let ((line-number (current-line-number reader)))
+    (multiple-value-bind (target attributes) (parse-block-image-line (next-line reader))
+      (make-block-image :line line-number
+                        :target target
+                        :alt (first (parse-attribute-list attributes))))))
 
 (defun parse-checkbox (text)
   "Return the checkbox state at the start of TEXT and the text following it.
@@ -227,6 +254,8 @@ it, and it ends at the first line that is neither."
                              (read-listing reader pending-source))
                             ((heading-line-p line)
                              (read-heading reader))
+                            ((parse-block-image-line line)
+                             (read-block-image reader))
                             ((unordered-item-p line)
                              (read-list reader nil))
                             ((ordered-item-p line)

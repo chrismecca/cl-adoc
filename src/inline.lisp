@@ -74,6 +74,91 @@
     (+ (and (! #\`) character))
   (:lambda (items) (coerce (mapcar #'second items) 'string)))
 
+;;; Macros
+;;;
+;;; Every macro ends in a bracketed attribute list, and the block image macro
+;;; in blocks.lisp wants the same thing off a whole line. So the bracket is
+;;; captured here as raw text and split by one function that both layers call,
+;;; rather than each growing its own idea of what a comma means.
+;;;
+;;; v1 has no way to escape a closing bracket: the list ends at the first one.
+;;; A link whose text genuinely needs a bracket is a v2 problem, and saying so
+;;; is better than a half-working escape nobody documented.
+
+(defrule bracketed-text
+    (and #\[ (* (and (! #\]) character)) #\])
+  (:destructure (open characters close)
+    (declare (ignore open close))
+    (coerce (mapcar #'second characters) 'string)))
+
+(defun parse-attribute-list (text)
+  "Split TEXT into positional attribute values on commas.
+Returns NIL for an empty list, so `image::photo.png[]` carries no alt text
+rather than carrying an empty one."
+  (let ((values '())
+        (start 0))
+    (dotimes (index (length text))
+      (when (char= (char text index) #\,)
+        (push (trim-whitespace (subseq text start index)) values)
+        (setf start (1+ index))))
+    (push (trim-whitespace (subseq text start)) values)
+    (let ((values (nreverse values)))
+      (if (equal values '("")) '() values))))
+
+(defrule macro-target
+    (+ (and (! (or #\[ space-char)) character))
+  (:lambda (characters) (coerce (mapcar #'second characters) 'string)))
+
+(defrule link
+    (and left-boundary "link:" macro-target bracketed-text)
+  (:destructure (boundary prefix target text)
+    (declare (ignore boundary prefix))
+    (let ((values (parse-attribute-list text)))
+      (make-link :target target
+                 ;; link:url[] shows the URL itself.
+                 :content (if values
+                              (parse-inline (first values))
+                              (list (make-text :string target)))))))
+
+;; The negative lookahead is what keeps the block form, image::, from being
+;; read as an inline image whose target begins with a colon.
+(defrule inline-image
+    (and left-boundary "image:" (! #\:) macro-target bracketed-text)
+  (:destructure (boundary prefix not-block target text)
+    (declare (ignore boundary prefix not-block))
+    (make-inline-image :target target
+                       :alt (first (parse-attribute-list text)))))
+
+;;; Autolinks
+;;;
+;;; The hard part of a bare URL is knowing where it stops. "See https://x.com/a."
+;;; ends in a sentence, not in a path, and trimming the period afterwards is not
+;;; an option -- by then the parser has consumed it and the text has lost it.
+;;;
+;;; So the grammar never takes it in the first place: trailing punctuation is
+;;; only part of a URL when another URL character follows it. That makes the
+;;; period in "x.com/a." fall outside the link while the one in "x.com" stays in.
+
+(defrule url-scheme (or "https://" "http://"))
+
+(defrule url-punctuation (or #\. #\, #\; #\: #\! #\? #\) #\] #\}))
+
+(defrule url-core
+    (and (! (or space-char url-punctuation)) character)
+  (:function second))
+
+(defrule url-character
+    (or url-core (and url-punctuation (& url-core)))
+  (:lambda (value)
+    (if (characterp value) value (char (first value) 0))))
+
+(defrule autolink
+    (and left-boundary url-scheme (+ url-character))
+  (:destructure (boundary scheme rest)
+    (declare (ignore boundary))
+    (let ((url (concatenate 'string scheme (coerce rest 'string))))
+      (make-link :target url :content (list (make-text :string url))))))
+
 ;;; Composition
 ;;;
 ;;; Ordered choice does the disambiguation. An escape is recognised before any
@@ -83,7 +168,7 @@
 ;;; typed rather than failing the parse.
 
 (defrule inline-element
-    (or escaped monospace strong emphasis character))
+    (or escaped monospace link inline-image autolink strong emphasis character))
 
 (defrule inline-content
     (* inline-element)
@@ -124,5 +209,9 @@ Used for deriving heading identifiers, where markup has no meaning."
                  (text (write-string (text-string node) out))
                  (monospace (write-string (monospace-string node) out))
                  (strong (mapc #'walk (strong-content node)))
-                 (emphasis (mapc #'walk (emphasis-content node))))))
+                 (emphasis (mapc #'walk (emphasis-content node)))
+                 (link (mapc #'walk (link-content node)))
+                 ;; An image contributes its alt text, which is the only part
+                 ;; of it that is words.
+                 (inline-image (write-string (or (inline-image-alt node) "") out)))))
       (mapc #'walk nodes))))

@@ -30,5 +30,6 @@
                              (:file "inline")
                              (:file "blocks")
                              (:file "lists")
+                             (:file "macros")
                              (:file "golden"))))
   :perform (test-op (op c) (uiop:symbol-call :parachute :test :adoc/tests)))

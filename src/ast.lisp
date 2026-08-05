@@ -46,6 +46,12 @@ applied to it, which is the whole point of the construct."
 ;; backend dispatches instead of branching -- which is also what leaves room
 ;; for description lists to arrive later as a third type.
 
+(defstruct (block-image (:include node))
+  "An image standing on its own as a block. ALT is NIL when the macro carried
+no alt text, which is different from carrying empty alt text."
+  (target "" :type string)
+  (alt nil :type (or null string)))
+
 (defstruct (unordered-list (:include node))
   "A bulleted list. ITEMS is a list of LIST-ITEM."
   (items nil :type list))
@@ -73,6 +79,17 @@ applied to it, which is the whole point of the construct."
 (defstruct (emphasis (:include inline-node))
   "Italic text. CONTENT is a list of inline nodes."
   (content nil :type list))
+
+(defstruct (link (:include inline-node))
+  "A hyperlink. CONTENT is a list of inline nodes, so link text may be
+formatted; for a bare URL it is the URL as literal text."
+  (target "" :type string)
+  (content nil :type list))
+
+(defstruct (inline-image (:include inline-node))
+  "An image sitting inside a line of text."
+  (target "" :type string)
+  (alt nil :type (or null string)))
 
 (defstruct (monospace (:include inline-node))
   "A code span. Its contents are a flat string rather than a node list: cl-adoc
