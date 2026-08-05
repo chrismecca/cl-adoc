@@ -10,6 +10,9 @@
 (defparameter +listing-delimiter+ "----"
   "Delimiter line opening and closing a listing block.")
 
+(defparameter +stem-delimiter+ "++++"
+  "Delimiter line opening and closing a stem or passthrough block.")
+
 (defun count-leading (character string)
   "Return the length of the run of CHARACTER at the start of STRING."
   (or (position-if-not (lambda (each) (char= each character)) string)
@@ -25,26 +28,34 @@ A heading is one to four equals signs, a space, and a title."
                (plusp (length (trim-whitespace (subseq line level)))))
       level)))
 
+(defun delimiter-line-p (line delimiter)
+  "True when LINE consists of exactly DELIMITER."
+  (and line (string= (trim-whitespace line) delimiter)))
+
 (defun listing-delimiter-p (line)
   "True when LINE opens or closes a listing block."
-  (and line (string= (trim-whitespace line) +listing-delimiter+)))
+  (delimiter-line-p line +listing-delimiter+))
 
-(defun source-attribute-line-p (line)
-  "Return the language of a [source] attribute line, T if it names none, or NIL.
-Returning T rather than a language keeps the caller's contract simple: a true
-value means the next block is source, and a string means it is tagged."
-  (let ((trimmed (trim-whitespace line)))
-    (when (and (> (length trimmed) 2)
+(defun stem-delimiter-p (line)
+  "True when LINE opens or closes a stem or passthrough block."
+  (delimiter-line-p line +stem-delimiter+))
+
+(defun block-attribute-line (line)
+  "Return T and the attribute values when LINE is a [...] attribute line.
+
+Every block attribute goes through here rather than each construct testing for
+its own: [source,lisp], [stem] and [pass] differ only in what the values say,
+and splitting them is the same job the macros in inline.lisp already do."
+  (let ((trimmed (and line (trim-whitespace line))))
+    (when (and trimmed
+               (>= (length trimmed) 2)
                (char= (char trimmed 0) #\[)
                (char= (char trimmed (1- (length trimmed))) #\]))
-      (let* ((body (subseq trimmed 1 (1- (length trimmed))))
-             (comma (position #\, body)))
-        (cond ((not (string-equal (trim-whitespace (subseq body 0 comma)) "source"))
-               nil)
-              (comma
-               (let ((language (trim-whitespace (subseq body (1+ comma)))))
-                 (if (plusp (length language)) language t)))
-              (t t))))))
+      (values t (parse-attribute-list (subseq trimmed 1 (1- (length trimmed))))))))
+
+(defun attribute-named-p (attributes name)
+  "True when the first value in ATTRIBUTES is NAME, ignoring case."
+  (and attributes (string-equal (first attributes) name)))
 
 (defun item-content (line marker)
   "Return the text of LINE after a leading MARKER, or NIL if it has none.
@@ -121,7 +132,8 @@ separates a block macro from a line of prose that merely mentions one."
       (and (parse-admonition-line line) t)
       (and (parse-quoted-line line) t)
       (and (parse-block-image-line line) t)
-      (and (source-attribute-line-p line) t)))
+      (stem-delimiter-p line)
+      (and (block-attribute-line line) t)))
 
 ;;; Individual constructs
 
@@ -134,24 +146,43 @@ separates a block macro from a line of prose that merely mentions one."
                   :line line-number
                   :content (parse-inline (trim-whitespace (subseq line level))))))
 
-(defun read-listing (reader language)
-  "Consume a delimited listing block from READER, tagged with LANGUAGE."
+(defun read-delimited-body (reader delimiter)
+  "Consume a block bounded by DELIMITER, returning its text and opening line."
   (let ((opened-on (current-line-number reader)))
     (next-line reader)                  ; the opening delimiter
     (let ((collected '()))
       (loop for line = (peek-line reader)
-            until (or (null line) (listing-delimiter-p line))
+            until (or (null line) (delimiter-line-p line delimiter))
             do (push (next-line reader) collected)
             finally (when (null line)
                       (error 'unterminated-block
                              :line opened-on
-                             :delimiter +listing-delimiter+
-                             :message (format nil "Listing block opened with ~a was never closed"
-                                              +listing-delimiter+))))
+                             :delimiter delimiter
+                             :message (format nil "Block opened with ~a was never closed"
+                                              delimiter))))
       (next-line reader)                ; the closing delimiter
-      (make-listing :line opened-on
-                    :language (when (stringp language) language)
-                    :text (format nil "~{~a~^~%~}" (nreverse collected))))))
+      (values (format nil "~{~a~^~%~}" (nreverse collected)) opened-on))))
+
+(defun read-listing (reader attributes)
+  "Consume a listing block from READER, tagged from ATTRIBUTES if [source,lang]."
+  (multiple-value-bind (text opened-on) (read-delimited-body reader +listing-delimiter+)
+    (make-listing :line opened-on
+                  :language (when (attribute-named-p attributes "source")
+                              (second attributes))
+                  :text text)))
+
+(defun read-stem-or-passthrough (reader attributes)
+  "Consume a ++++ block from READER.
+
+The delimiter serves two constructs. [pass] asks for the body to reach the
+output untouched; anything else, including no attribute line at all, is
+mathematics. Asciidoctor defaults the other way, treating a bare ++++ as
+passthrough -- cl-adoc does not, because math is the reason this project
+chose AsciiDoc, and raw markup is the rarer thing to want."
+  (multiple-value-bind (text opened-on) (read-delimited-body reader +stem-delimiter+)
+    (if (attribute-named-p attributes "pass")
+        (make-passthrough :line opened-on :text text)
+        (make-block-stem :line opened-on :text text))))
 
 (defun read-paragraph (reader)
   "Consume a paragraph from READER, ending at the first line that opens a block."
@@ -313,21 +344,23 @@ it, and it ends at the first line that is neither."
 (defun read-blocks (reader)
   "Consume every remaining block from READER."
   (let ((blocks '())
-        (pending-source nil))
+        (pending-attributes nil))
     (loop
       (skip-blank-lines reader)
       (let ((line (peek-line reader)))
         (when (null line)
           (return))
-        (let ((source (source-attribute-line-p line)))
-          (if source
+        (multiple-value-bind (attribute-line values) (block-attribute-line line)
+          (if attribute-line
               ;; An attribute line configures the block that follows it, so it
               ;; is remembered rather than turned into a node of its own.
-              (progn (setf pending-source source)
+              (progn (setf pending-attributes values)
                      (next-line reader))
               (progn
                 (push (cond ((listing-delimiter-p line)
-                             (read-listing reader pending-source))
+                             (read-listing reader pending-attributes))
+                            ((stem-delimiter-p line)
+                             (read-stem-or-passthrough reader pending-attributes))
                             ((heading-line-p line)
                              (read-heading reader))
                             ((parse-admonition-line line)
@@ -344,5 +377,5 @@ it, and it ends at the first line that is neither."
                              (read-paragraph reader)))
                       blocks)
                 ;; An attribute only ever applies to the block directly after it.
-                (setf pending-source nil))))))
+                (setf pending-attributes nil))))))
     (nreverse blocks)))

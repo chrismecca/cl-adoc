@@ -46,6 +46,17 @@ applied to it, which is the whole point of the construct."
 ;; backend dispatches instead of branching -- which is also what leaves room
 ;; for description lists to arrive later as a third type.
 
+(defstruct (block-stem (:include node))
+  "A block of mathematics. TEXT is the notation exactly as written; cl-adoc
+does not read it, it only hands it to whatever renders math on the page."
+  (text "" :type string))
+
+(defstruct (passthrough (:include node))
+  "A block whose text reaches the output untouched, escaping included. This is
+the one construct that can emit arbitrary markup, which is the whole point of
+it and also the reason it has to be asked for by name."
+  (text "" :type string))
+
 (defstruct (admonition (:include node))
   "A NOTE, TIP, WARNING, IMPORTANT or CAUTION. CONTENT is a single paragraph's
 worth of inline nodes, which is the only form v1 recognises."
@@ -96,6 +107,11 @@ no alt text, which is different from carrying empty alt text."
 formatted; for a bare URL it is the URL as literal text."
   (target "" :type string)
   (content nil :type list))
+
+(defstruct (inline-stem (:include inline-node))
+  "Mathematics inside a run of text. Like a code span, its contents are held
+as a flat string and never read as markup."
+  (text "" :type string))
 
 (defstruct (inline-image (:include inline-node))
   "An image sitting inside a line of text."

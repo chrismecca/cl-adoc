@@ -99,6 +99,13 @@ reader rather than guessed at from the filename."
 (defmethod render-node ((node inline-image) (backend html5) stream)
   (render-image (inline-image-target node) (inline-image-alt node) stream))
 
+;; The \( \) and \[ \] delimiters are what a client-side math renderer looks
+;; for. The class is what tells a page whether it needs to load one at all.
+(defmethod render-node ((node inline-stem) (backend html5) stream)
+  (write-string "<span class=\"stem\">\\(" stream)
+  (escape-text (inline-stem-text node) stream)
+  (write-string "\\)</span>" stream))
+
 (defmethod render-node ((node monospace) (backend html5) stream)
   (write-string "<code>" stream)
   (escape-text (monospace-string node) stream)
@@ -119,6 +126,17 @@ reader rather than guessed at from the filename."
   (write-string "<p>" stream)
   (render-children (paragraph-content node) backend stream)
   (format stream "</p>~%"))
+
+(defmethod render-node ((node block-stem) (backend html5) stream)
+  (write-string "<div class=\"stem\">\\[" stream)
+  (escape-text (block-stem-text node) stream)
+  (format stream "\\]</div>~%"))
+
+(defmethod render-node ((node passthrough) (backend html5) stream)
+  ;; Deliberately unescaped. A passthrough block that escaped its contents
+  ;; would be a listing block with extra steps.
+  (write-string (passthrough-text node) stream)
+  (terpri stream))
 
 (defun admonition-title (kind)
   "Return the human-readable label for an admonition of KIND."

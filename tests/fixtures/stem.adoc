@@ -1,0 +1,28 @@
+= Mathematics
+
+Mathematics inside a line is written stem:[E = mc^2], and its notation is
+taken literally: stem:[a_1 * b_2] keeps both the underscore and the asterisk
+that the inline grammar would otherwise claim.
+
+A block of mathematics stands between delimiters:
+
+++++
+\sum_{i=1}^n i = \frac{n(n+1)}{2}
+++++
+
+The attribute may be written out, which says exactly what the bare delimiter
+already said:
+
+[stem]
+++++
+e^{i\pi} + 1 = 0
+++++
+
+A passthrough block asks for its contents to reach the page untouched:
+
+[pass]
+++++
+<aside class="hand-written">Markup cl-adoc did not generate.</aside>
+++++
+
+Everything else keeps escaping its output, so a < b stays readable.
