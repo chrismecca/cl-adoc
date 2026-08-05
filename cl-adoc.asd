@@ -29,5 +29,6 @@
                 :components ((:file "package")
                              (:file "inline")
                              (:file "blocks")
+                             (:file "lists")
                              (:file "golden"))))
   :perform (test-op (op c) (uiop:symbol-call :parachute :test :adoc/tests)))

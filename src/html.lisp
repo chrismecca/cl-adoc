@@ -99,6 +99,33 @@ and leading and trailing hyphens are dropped."
   (render-children (paragraph-content node) backend stream)
   (format stream "</p>~%"))
 
+(defun render-item-list (tag items backend stream)
+  "Render ITEMS inside TAG.
+A list holding any checkbox is marked as a checklist, since the caller styling
+it needs to suppress the bullet that would otherwise sit beside the box."
+  (format stream "<~a~@[ class=\"~a\"~]>~%"
+          tag (when (some #'list-item-checked items) "checklist"))
+  (dolist (item items)
+    (render-node item backend stream))
+  (format stream "</~a>~%" tag))
+
+(defmethod render-node ((node unordered-list) (backend html5) stream)
+  (render-item-list "ul" (unordered-list-items node) backend stream))
+
+(defmethod render-node ((node ordered-list) (backend html5) stream)
+  (render-item-list "ol" (ordered-list-items node) backend stream))
+
+(defmethod render-node ((node list-item) (backend html5) stream)
+  (write-string "<li>" stream)
+  (let ((checked (list-item-checked node)))
+    (when checked
+      ;; Disabled, because the checkbox reflects what the document says rather
+      ;; than offering the reader a control.
+      (format stream "<input type=\"checkbox\" disabled~:[~; checked~]> "
+              (eq checked :checked))))
+  (render-children (list-item-content node) backend stream)
+  (format stream "</li>~%"))
+
 (defmethod render-node ((node listing) (backend html5) stream)
   (write-string "<pre><code" stream)
   (let ((language (listing-language node)))

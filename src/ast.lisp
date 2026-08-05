@@ -35,6 +35,25 @@ applied to it, which is the whole point of the construct."
   (language nil :type (or null string))
   (text "" :type string))
 
+(defstruct (list-item (:include node))
+  "One entry in a list. CHECKED is NIL for an ordinary item, or :CHECKED or
+:UNCHECKED when the item carries a checkbox."
+  (content nil :type list)
+  (checked nil :type (member nil :checked :unchecked)))
+
+;; Ordered and unordered lists are separate types rather than one type with a
+;; flag. They render to different elements, and keeping them apart means the
+;; backend dispatches instead of branching -- which is also what leaves room
+;; for description lists to arrive later as a third type.
+
+(defstruct (unordered-list (:include node))
+  "A bulleted list. ITEMS is a list of LIST-ITEM."
+  (items nil :type list))
+
+(defstruct (ordered-list (:include node))
+  "A numbered list. ITEMS is a list of LIST-ITEM."
+  (items nil :type list))
+
 ;;; Inline nodes
 ;;;
 ;;; These carry no line number. They are always reached through the block that

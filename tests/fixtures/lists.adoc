@@ -1,0 +1,30 @@
+= Lists
+
+Unordered lists use a single asterisk marker:
+
+* a first item
+* a second item, with `code` and *bold* inside
+* a third item that soft-wraps onto
+  another line, since prose does not always fit
+
+Ordered lists use a single period:
+
+. step one
+. step two
+
+Items may be separated by blank lines and still form one list:
+
+* separated
+
+* but together
+
+Checklists mark individual items:
+
+* [x] something finished
+* [ ] something outstanding
+* an ordinary item in the same list
+
+A backslash keeps the bracket literal, since that position is where checklist
+syntax is recognized:
+
+* \[ ] not a checkbox
