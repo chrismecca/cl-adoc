@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Both results are wanted: the pair is here to bracket a version range,
+      # so one failing should not cancel the other.
+      fail-fast: false
+      matrix:
+        # Ubuntu 24.04 packages SBCL 2.2.9 and 26.04 packages 2.6.0, which
+        # brackets the "SBCL 2.4 or later" claim in README.adoc from both
+        # sides. The runner labels are pinned rather than tracking
+        # ubuntu-latest so the tested versions only change deliberately.
+        os: [ubuntu-24.04, ubuntu-26.04]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SBCL and ocicl
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sbcl
+          gh release download --repo ocicl/ocicl --pattern '*_amd64.deb' --dir /tmp
+          sudo dpkg -i /tmp/ocicl_*_amd64.deb
+          ocicl setup > ~/.sbclrc
+
+      - name: Record the toolchain under test
+        run: sbcl --version
+
+      # Installs the exact digests pinned in ocicl.csv, so a green run means
+      # the committed lockfile is sufficient to build the project.
+      - name: Install dependencies
+        run: ocicl install
+
+      - name: Run tests
+        run: make test
+        env:
+          OCICL_LOCAL_ONLY: 1
