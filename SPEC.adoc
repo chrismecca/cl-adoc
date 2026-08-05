@@ -83,15 +83,22 @@ Status markers used below:
 
 == Admonitions
 
-* *(?)* `NOTE:`, `TIP:`, `WARNING:`, `IMPORTANT:`, `CAUTION:`,
-  single-paragraph form only
+* `NOTE:`, `TIP:`, `WARNING:`, `IMPORTANT:`, `CAUTION:`, single-paragraph
+  form only
+* The label is matched exactly, including the space after the colon, so a
+  paragraph opening `NOTES: ` or `Note: ` is prose
+* *(?)* Block admonitions (`[NOTE]` above a delimited block), which is the
+  form that carries more than one paragraph
 
 == Blocks
 
 * Delimited listing blocks (`----`)
 * Source blocks with a language attribute (`[source,lang]`)
 * *(?)* Delimited STEM/math blocks (`++++`) and inline `stem:[...]`
-* *(?)* Blockquotes (`> `, line-prefixed form)
+* Blockquotes (`> `, line-prefixed form). A bare `>` separates one paragraph
+  of a quotation from the next; the space after the marker is required, so a
+  line opening `>text` is prose.
+* *(?)* Quotation attribution (`[quote, author, source]`)
 * *(X)* Sidebars, example blocks, open blocks. Rationale: no content has
   needed them yet; straightforward to add when something does.
 * *(X)* Callouts in source blocks. Rationale: requires per-language

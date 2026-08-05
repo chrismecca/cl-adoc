@@ -51,6 +51,13 @@
    #:block-image-p
    #:block-image-target
    #:block-image-alt
+   #:admonition
+   #:admonition-p
+   #:admonition-kind
+   #:admonition-content
+   #:blockquote
+   #:blockquote-p
+   #:blockquote-content
 
    ;; Inline nodes
    #:inline-node
