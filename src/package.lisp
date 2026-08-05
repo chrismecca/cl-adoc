@@ -91,6 +91,18 @@
    #:inline-stem-p
    #:inline-stem-text
 
+   ;; Reading a parsed document
+   #:node-children
+   #:map-nodes
+   #:collect-nodes
+   #:find-node
+   #:node-text
+   #:heading-id
+   #:document-headings
+   #:document-uses-stem-p
+   #:document-references
+   #:reference-target
+
    ;; Rendering
    #:backend
    #:html5

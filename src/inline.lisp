@@ -209,19 +209,3 @@ gathers those stragglers so the result is a clean list of inline nodes."
   "Parse STRING into a list of inline nodes."
   (esrap:parse 'inline-content string))
 
-(defun inline-text (nodes)
-  "Return the plain text of NODES with all formatting removed.
-Used for deriving heading identifiers, where markup has no meaning."
-  (with-output-to-string (out)
-    (labels ((walk (node)
-               (etypecase node
-                 (text (write-string (text-string node) out))
-                 (monospace (write-string (monospace-string node) out))
-                 (strong (mapc #'walk (strong-content node)))
-                 (emphasis (mapc #'walk (emphasis-content node)))
-                 (link (mapc #'walk (link-content node)))
-                 (inline-stem (write-string (inline-stem-text node) out))
-                 ;; An image contributes its alt text, which is the only part
-                 ;; of it that is words.
-                 (inline-image (write-string (or (inline-image-alt node) "") out)))))
-      (mapc #'walk nodes))))

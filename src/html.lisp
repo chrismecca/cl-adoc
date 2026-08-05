@@ -40,24 +40,6 @@ text content replaced by entities."
              (#\" (write-string "&quot;" stream))
              (t (write-char character stream)))))
 
-(defun slugify (string)
-  "Reduce STRING to a lowercase identifier suitable for a fragment link.
-Runs of characters that are not letters or digits collapse to a single hyphen,
-and leading and trailing hyphens are dropped."
-  (let ((slug (make-string-output-stream))
-        (pending-hyphen nil)
-        (seen-content nil))
-    (loop for character across string
-          do (if (alphanumericp character)
-                 (progn
-                   (when (and pending-hyphen seen-content)
-                     (write-char #\- slug))
-                   (write-char (char-downcase character) slug)
-                   (setf pending-hyphen nil
-                         seen-content t))
-                 (setf pending-hyphen t)))
-    (get-output-stream-string slug)))
-
 (defun render-children (nodes backend stream)
   "Render each of NODES to STREAM in order."
   (dolist (node nodes)
@@ -115,7 +97,7 @@ reader rather than guessed at from the filename."
 
 (defmethod render-node ((node heading) (backend html5) stream)
   (let ((level (heading-level node))
-        (id (slugify (inline-text (heading-content node)))))
+        (id (heading-id node)))
     (format stream "<h~d id=\"" level)
     (escape-attribute id stream)
     (write-string "\">" stream)
