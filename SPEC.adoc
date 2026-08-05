@@ -66,10 +66,18 @@ Status markers used below:
 
 == Links and Images
 
-* *(?)* Autolinks, bare URLs
-* *(?)* Link macro: `link:url[text]`
-* *(?)* Block image macro: `image::path[alt text]`
-* *(?)* Inline images
+* Autolinks for bare `http://` and `https://` URLs. A URL stops before
+  trailing sentence punctuation, so a link ending a sentence does not
+  swallow the period; punctuation with more URL after it is kept.
+* Link macro: `link:url[text]`, where `link:url[]` displays the target
+* Block image macro: `image::path[alt text]`, alone on its line — the
+  bracket has to close the line, or it is ordinary prose
+* Inline images: `image:path[alt text]`
+* Attribute lists are positional, and end at the first `]`. There is no way
+  to escape a closing bracket inside one. Rationale: a half-working escape
+  nobody documented is worse than a limit that is written down.
+* *(?)* Autolinks for other schemes, `mailto:` most of all
+* *(?)* Named attributes, and image width and height
 * *(X)* Audio and video macros. Rationale: no current use case; the
   two-lane writing/hobby content this targets is text- and image-first.
 

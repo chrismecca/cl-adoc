@@ -78,6 +78,27 @@ and leading and trailing hyphens are dropped."
   (render-children (emphasis-content node) backend stream)
   (write-string "</em>" stream))
 
+(defmethod render-node ((node link) (backend html5) stream)
+  (write-string "<a href=\"" stream)
+  (escape-attribute (link-target node) stream)
+  (write-string "\">" stream)
+  (render-children (link-content node) backend stream)
+  (write-string "</a>" stream))
+
+(defun render-image (target alt stream)
+  "Write an img element for TARGET to STREAM.
+A missing alt list and an empty one both produce alt=\"\", since an image with
+no alternative text still needs the attribute to be ignorable by a screen
+reader rather than guessed at from the filename."
+  (write-string "<img src=\"" stream)
+  (escape-attribute target stream)
+  (write-string "\" alt=\"" stream)
+  (escape-attribute (or alt "") stream)
+  (write-string "\">" stream))
+
+(defmethod render-node ((node inline-image) (backend html5) stream)
+  (render-image (inline-image-target node) (inline-image-alt node) stream))
+
 (defmethod render-node ((node monospace) (backend html5) stream)
   (write-string "<code>" stream)
   (escape-text (monospace-string node) stream)
@@ -98,6 +119,14 @@ and leading and trailing hyphens are dropped."
   (write-string "<p>" stream)
   (render-children (paragraph-content node) backend stream)
   (format stream "</p>~%"))
+
+(defmethod render-node ((node block-image) (backend html5) stream)
+  ;; figure rather than a bare img: a block image is a figure whether or not
+  ;; it has a caption yet, and it gives a caption somewhere to go when the
+  ;; title syntax lands.
+  (write-string "<figure>" stream)
+  (render-image (block-image-target node) (block-image-alt node) stream)
+  (format stream "</figure>~%"))
 
 (defun render-item-list (tag items backend stream)
   "Render ITEMS inside TAG.

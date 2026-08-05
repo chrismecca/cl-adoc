@@ -1,0 +1,23 @@
+= Links and Images
+
+The link macro takes its text from the brackets: see
+link:https://example.com/docs[the documentation] for more.
+
+With empty brackets the target speaks for itself:
+link:https://example.com[].
+
+A bare URL is linked where it stands, and the period ending this sentence is
+not part of it: https://example.com/a/b.
+
+Punctuation inside a URL survives, since more of the URL follows it, as in
+https://sub.example.com/a.html and https://example.com/a_b_c.
+
+An inline image:icon.png[icon] sits in the run of text.
+
+A block image stands on its own line:
+
+image::photo.jpg[A scenic photo]
+
+Alt text is optional, though the attribute is always written:
+
+image::diagram.svg[]

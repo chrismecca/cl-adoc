@@ -3,11 +3,12 @@
 (defpackage #:adoc
   (:nicknames #:cl-adoc)
   (:use #:cl)
-  ;; Only the operators the grammar actually names are imported. esrap
-  ;; resolves the rest of its expression syntax by symbol name, so the
-  ;; repetition operators read as plain * and + inside a rule even though
-  ;; those symbols belong to COMMON-LISP here.
-  (:import-from #:esrap #:defrule #:!)
+  ;; esrap's own operators have to be esrap's symbols: an unrecognised head
+  ;; falls through to its semantic-predicate form, which then tries to call
+  ;; the symbol as a function. The operators that collide with COMMON-LISP --
+  ;; *, + and < -- are matched by name instead, so those read as themselves
+  ;; inside a rule and are deliberately absent here.
+  (:import-from #:esrap #:defrule #:! #:&)
   (:export
    ;; Entry points
    #:parse-string
@@ -46,6 +47,10 @@
    #:list-item-p
    #:list-item-content
    #:list-item-checked
+   #:block-image
+   #:block-image-p
+   #:block-image-target
+   #:block-image-alt
 
    ;; Inline nodes
    #:inline-node
@@ -61,6 +66,14 @@
    #:monospace
    #:monospace-p
    #:monospace-string
+   #:link
+   #:link-p
+   #:link-target
+   #:link-content
+   #:inline-image
+   #:inline-image-p
+   #:inline-image-target
+   #:inline-image-alt
 
    ;; Rendering
    #:backend
