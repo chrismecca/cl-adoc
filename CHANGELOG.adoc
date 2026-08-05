@@ -1,0 +1,44 @@
+:doctitle: cl-adoc changelog
+
+= Changelog
+
+Notable changes to cl-adoc. The library is versioned independently of
+SPEC.adoc, which describes the language subset.
+
+== 0.1.0
+
+First release.
+
+=== Language
+
+Document headers with a title and `:key: value` attribute entries. Section
+headings through four levels, with generated identifiers. Paragraphs. Bold,
+italic and monospace, constrained so that `snake_case_name` and `2 * 3 * 4`
+are left alone, with backslash escapes for the delimiters. Unordered, ordered
+and checklist items. Link and image macros, inline and block, and autolinks
+for bare `http://` and `https://` URLs. Admonitions and blockquotes. Listing
+blocks, source blocks with a language, mathematics inline and in blocks, and
+passthrough blocks.
+
+The full subset, including what is deliberately excluded and why, is in
+SPEC.adoc. Roughly a dozen entries there are still marked as planned.
+
+=== Interface
+
+`parse-string` and `parse-file` produce a document; `render-html` renders one.
+`map-nodes`, `collect-nodes` and `find-node` walk a parsed document, and
+`node-text`, `heading-id`, `document-headings`, `document-uses-stem-p`,
+`document-references` and `reference-target` answer the questions a build
+tends to ask of one.
+
+Rendering dispatches on a backend object, so a second output format is a set
+of methods rather than an edit to an existing one.
+
+=== Known limits
+
+Attribute lists end at the first `]`; there is no way to escape one inside
+them, which also caps what inline `stem:[...]` can hold. A bare `++++` block
+is mathematics here, where Asciidoctor treats it as passthrough — `[pass]`
+asks for passthrough explicitly. Code spans are literal, where Asciidoctor
+applies formatting inside them. Each of these is recorded in SPEC.adoc with
+its reasoning.
