@@ -11,7 +11,7 @@
 
 Body text.
 ")))
-    (is string= "The Title" (adoc::inline-text (adoc:document-title document)))
+    (is string= "The Title" (adoc:node-text (adoc:document-title document)))
     (is string= "Chris Mecca" (adoc:document-attribute document "author"))
     (is string= "2026-08-04" (adoc:document-attribute document "date"))
     (is = 1 (length (adoc:document-blocks document)))))
