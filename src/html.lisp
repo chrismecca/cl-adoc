@@ -120,6 +120,31 @@ reader rather than guessed at from the filename."
   (render-children (paragraph-content node) backend stream)
   (format stream "</p>~%"))
 
+(defun admonition-title (kind)
+  "Return the human-readable label for an admonition of KIND."
+  (ecase kind
+    (:note "Note")
+    (:tip "Tip")
+    (:warning "Warning")
+    (:important "Important")
+    (:caution "Caution")))
+
+(defmethod render-node ((node admonition) (backend html5) stream)
+  (let ((kind (admonition-kind node)))
+    ;; The label is written into the markup rather than left to a CSS
+    ;; ::before, so it survives anywhere the stylesheet does not reach --
+    ;; a feed reader, reader mode, or plain text.
+    (format stream "<div class=\"admonition ~(~a~)\">~%" kind)
+    (format stream "<p class=\"admonition-label\">~a</p>~%" (admonition-title kind))
+    (write-string "<p>" stream)
+    (render-children (admonition-content node) backend stream)
+    (format stream "</p>~%</div>~%")))
+
+(defmethod render-node ((node blockquote) (backend html5) stream)
+  (format stream "<blockquote>~%")
+  (render-children (blockquote-content node) backend stream)
+  (format stream "</blockquote>~%"))
+
 (defmethod render-node ((node block-image) (backend html5) stream)
   ;; figure rather than a bare img: a block image is a figure whether or not
   ;; it has a caption yet, and it gives a caption somewhere to go when the

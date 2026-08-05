@@ -65,6 +65,34 @@ opening delimiter, so it cannot be mistaken for a bullet."
   "True when LINE opens an ordered list item."
   (and (item-content line #\.) t))
 
+(defparameter +admonition-labels+
+  '(("NOTE" . :note)
+    ("TIP" . :tip)
+    ("WARNING" . :warning)
+    ("IMPORTANT" . :important)
+    ("CAUTION" . :caution))
+  "The admonition labels v1 recognises, paired with the kind each denotes.")
+
+(defun parse-admonition-line (line)
+  "Return the admonition kind and text of LINE, or NIL if it opens none.
+The label is matched exactly, so a paragraph beginning \"NOTES: \" is prose."
+  (when line
+    (loop for (label . kind) in +admonition-labels+
+          for length = (length label)
+          when (and (> (length line) (1+ length))
+                    (string= label line :end2 length)
+                    (char= (char line length) #\:)
+                    (char= (char line (1+ length)) #\Space))
+            do (return (values kind (subseq line (+ length 2)))))))
+
+(defun parse-quoted-line (line)
+  "Return the text of a > prefixed LINE, or NIL when it carries no prefix.
+A bare > is an empty line inside the quote. The space after the marker is
+required, so a line opening with >text is ordinary prose."
+  (when (and line (plusp (length line)) (char= (char line 0) #\>))
+    (cond ((= (length line) 1) "")
+          ((char= (char line 1) #\Space) (subseq line 2)))))
+
 (defparameter +block-image-prefix+ "image::"
   "Prefix marking a line as the block form of the image macro.")
 
@@ -90,6 +118,8 @@ separates a block macro from a line of prose that merely mentions one."
       (listing-delimiter-p line)
       (unordered-item-p line)
       (ordered-item-p line)
+      (and (parse-admonition-line line) t)
+      (and (parse-quoted-line line) t)
       (and (parse-block-image-line line) t)
       (and (source-attribute-line-p line) t)))
 
@@ -132,6 +162,52 @@ separates a block macro from a line of prose that merely mentions one."
           do (push (next-line reader) collected))
     (make-paragraph :line line-number
                     :content (parse-inline (format nil "~{~a~^~%~}" (nreverse collected))))))
+
+(defun read-admonition (reader)
+  "Consume an admonition from READER, including any lines it wraps onto."
+  (let ((line-number (current-line-number reader)))
+    (multiple-value-bind (kind text) (parse-admonition-line (next-line reader))
+      (let ((collected (list text)))
+        (loop for line = (peek-line reader)
+              until (or (null line) (block-boundary-p line))
+              do (push (next-line reader) collected))
+        (make-admonition :line line-number
+                         :kind kind
+                         :content (parse-inline
+                                   (format nil "~{~a~^~%~}" (nreverse collected))))))))
+
+(defun quoted-paragraphs (numbered-lines)
+  "Group NUMBERED-LINES, each a line number consed to its text, into paragraphs.
+A blank line ends the paragraph in progress, which is how a bare > inside a
+quotation separates one paragraph from the next."
+  (let ((paragraphs '())
+        (current '()))
+    (flet ((flush ()
+             (when current
+               (let ((lines (nreverse current)))
+                 (push (make-paragraph
+                        :line (car (first lines))
+                        :content (parse-inline
+                                  (format nil "~{~a~^~%~}" (mapcar #'cdr lines))))
+                       paragraphs))
+               (setf current '()))))
+      (dolist (line numbered-lines)
+        (if (blank-line-p (cdr line))
+            (flush)
+            (push line current)))
+      (flush))
+    (nreverse paragraphs)))
+
+(defun read-blockquote (reader)
+  "Consume a run of > prefixed lines from READER as one quote."
+  (let ((line-number (current-line-number reader))
+        (collected '()))
+    (loop for text = (parse-quoted-line (peek-line reader))
+          while text
+          do (push (cons (current-line-number reader) text) collected)
+             (next-line reader))
+    (make-blockquote :line line-number
+                     :content (quoted-paragraphs (nreverse collected)))))
 
 (defun read-block-image (reader)
   "Consume an image:: line from READER."
@@ -254,6 +330,10 @@ it, and it ends at the first line that is neither."
                              (read-listing reader pending-source))
                             ((heading-line-p line)
                              (read-heading reader))
+                            ((parse-admonition-line line)
+                             (read-admonition reader))
+                            ((parse-quoted-line line)
+                             (read-blockquote reader))
                             ((parse-block-image-line line)
                              (read-block-image reader))
                             ((unordered-item-p line)

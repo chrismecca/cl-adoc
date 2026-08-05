@@ -46,6 +46,17 @@ applied to it, which is the whole point of the construct."
 ;; backend dispatches instead of branching -- which is also what leaves room
 ;; for description lists to arrive later as a third type.
 
+(defstruct (admonition (:include node))
+  "A NOTE, TIP, WARNING, IMPORTANT or CAUTION. CONTENT is a single paragraph's
+worth of inline nodes, which is the only form v1 recognises."
+  (kind :note :type (member :note :tip :warning :important :caution))
+  (content nil :type list))
+
+(defstruct (blockquote (:include node))
+  "A run of > prefixed lines. CONTENT is a list of PARAGRAPH, since a bare >
+separates one paragraph of a quotation from the next."
+  (content nil :type list))
+
 (defstruct (block-image (:include node))
   "An image standing on its own as a block. ALT is NIL when the macro carried
 no alt text, which is different from carrying empty alt text."
