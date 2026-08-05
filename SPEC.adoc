@@ -46,11 +46,16 @@ Status markers used below:
 
 == Lists
 
-* *(?)* Unordered lists, single marker: `*`
-* *(?)* Ordered lists, single marker: `.`
-* *(?)* Checklists (`[ ]`, `[x]`) — note: literal bracket text at the start
+* Unordered lists, single marker: `*`
+* Ordered lists, single marker: `.`
+* Checklists (`[ ]`, `[x]`, `[X]`) — note: literal bracket text at the start
   of a list item must be escaped (`\[ ]`), since this exact position is
   where checklist syntax is recognized.
+* An item continues onto following lines until the next item or the next
+  block, so long items may be soft-wrapped
+* A marker is only a marker in the first column, followed by a space. That
+  is what keeps a line opening with `*bold*` a paragraph, and it follows
+  from nesting being excluded — an indented marker would have nowhere to go.
 * *(X)* Hyphen-marker unordered lists (`-`). Rationale: ambiguous once
   quoted paragraphs or em dashes enter the picture — a line starting with
   `-` could be a new list item or a continuation of prose. One marker, no

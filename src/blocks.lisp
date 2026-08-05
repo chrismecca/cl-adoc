@@ -46,11 +46,32 @@ value means the next block is source, and a string means it is tagged."
                  (if (plusp (length language)) language t)))
               (t t))))))
 
+(defun item-content (line marker)
+  "Return the text of LINE after a leading MARKER, or NIL if it has none.
+A marker is the character in column zero followed by a space, which is what
+keeps a line like `*bold* first` a paragraph: there is no space after the
+opening delimiter, so it cannot be mistaken for a bullet."
+  (when (and line
+             (>= (length line) 2)
+             (char= (char line 0) marker)
+             (char= (char line 1) #\Space))
+    (trim-whitespace (subseq line 2))))
+
+(defun unordered-item-p (line)
+  "True when LINE opens an unordered list item."
+  (and (item-content line #\*) t))
+
+(defun ordered-item-p (line)
+  "True when LINE opens an ordered list item."
+  (and (item-content line #\.) t))
+
 (defun block-boundary-p (line)
   "True when LINE cannot be a continuation of the paragraph in progress."
   (or (blank-line-p line)
       (heading-line-p line)
       (listing-delimiter-p line)
+      (unordered-item-p line)
+      (ordered-item-p line)
       (and (source-attribute-line-p line) t)))
 
 ;;; Individual constructs
@@ -92,6 +113,68 @@ value means the next block is source, and a string means it is tagged."
           do (push (next-line reader) collected))
     (make-paragraph :line line-number
                     :content (parse-inline (format nil "~{~a~^~%~}" (nreverse collected))))))
+
+(defun parse-checkbox (text)
+  "Return the checkbox state at the start of TEXT and the text following it.
+The state is :CHECKED, :UNCHECKED, or NIL when TEXT opens with no checkbox."
+  (when (and (>= (length text) 3)
+             (char= (char text 0) #\[)
+             (char= (char text 2) #\])
+             ;; The bracket group has to be a word of its own, so that a line
+             ;; beginning "[x]y" stays literal text.
+             (or (= (length text) 3)
+                 (char= (char text 3) #\Space)))
+    (let ((rest (trim-whitespace (subseq text 3))))
+      (case (char text 1)
+        (#\Space (values :unchecked rest))
+        ((#\x #\X) (values :checked rest))))))
+
+(defun split-checkbox (text)
+  "Split TEXT into its checkbox state and remaining content."
+  ;; A backslash before the bracket keeps it literal. This position is the one
+  ;; place checklist syntax is recognised, so it is the one place an author has
+  ;; to escape a bracket they meant literally.
+  (if (and (> (length text) 1)
+           (char= (char text 0) #\\)
+           (char= (char text 1) #\[))
+      (values nil (subseq text 1))
+      (multiple-value-bind (state rest) (parse-checkbox text)
+        (if state
+            (values state rest)
+            (values nil text)))))
+
+(defun read-list-item (reader marker)
+  "Consume one item, including any lines it soft-wraps onto."
+  (let* ((line-number (current-line-number reader))
+         (collected (list (item-content (next-line reader) marker))))
+    (loop for line = (peek-line reader)
+          until (or (null line) (block-boundary-p line))
+          ;; Continuation lines are conventionally indented to line up under
+          ;; the marker. That indentation is presentation, not content.
+          do (push (trim-whitespace (next-line reader)) collected))
+    (multiple-value-bind (checked content)
+        (split-checkbox (format nil "~{~a~^~%~}" (nreverse collected)))
+      (make-list-item :line line-number
+                      :checked checked
+                      :content (parse-inline content)))))
+
+(defun read-list (reader ordered)
+  "Consume a run of list items from READER as a single list."
+  (let ((line-number (current-line-number reader))
+        (marker (if ordered #\. #\*))
+        (items '()))
+    (loop
+      (push (read-list-item reader marker) items)
+      ;; Items may be separated by blank lines and still belong to one list.
+      ;; Any blanks consumed here would have been skipped by the block loop
+      ;; regardless, so there is nothing to hand back when the list does end.
+      (skip-blank-lines reader)
+      (unless (item-content (peek-line reader) marker)
+        (return)))
+    (let ((items (nreverse items)))
+      (if ordered
+          (make-ordered-list :line line-number :items items)
+          (make-unordered-list :line line-number :items items)))))
 
 ;;; Header and body
 
@@ -144,6 +227,10 @@ it, and it ends at the first line that is neither."
                              (read-listing reader pending-source))
                             ((heading-line-p line)
                              (read-heading reader))
+                            ((unordered-item-p line)
+                             (read-list reader nil))
+                            ((ordered-item-p line)
+                             (read-list reader t))
                             (t
                              (read-paragraph reader)))
                       blocks)

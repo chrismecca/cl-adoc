@@ -36,6 +36,16 @@
    #:listing-p
    #:listing-language
    #:listing-text
+   #:unordered-list
+   #:unordered-list-p
+   #:unordered-list-items
+   #:ordered-list
+   #:ordered-list-p
+   #:ordered-list-items
+   #:list-item
+   #:list-item-p
+   #:list-item-content
+   #:list-item-checked
 
    ;; Inline nodes
    #:inline-node
