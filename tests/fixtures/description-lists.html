@@ -1,0 +1,35 @@
+<h1>Description Lists</h1>
+<p>A term and what it means, separated by a double colon:</p>
+<dl>
+<dt>term</dt>
+<dd>The definition, on the same line.</dd>
+<dt>another term</dt>
+<dd>Terms may hold spaces, so a phrase works as well as a word.</dd>
+</dl>
+<p>The delimiter is the first <code>::</code> with a space after it, which is why a term
+may itself contain colons:</p>
+<dl>
+<dt><code>:date:</code></dt>
+<dd>An attribute name, colons and all, read as it was written.</dd>
+<dt><code>_media/</code></dt>
+<dd>A directory whose name begins with an underscore.</dd>
+</dl>
+<p>A definition may carry inline formatting, and may soft-wrap the way a list
+item does:</p>
+<dl>
+<dt>soft-wrapped</dt>
+<dd>This definition runs onto a second line, indented under the
+term the way prose usually is, and the indentation is presentation rather
+than content.</dd>
+<dt>formatted</dt>
+<dd>Definitions hold <strong>bold</strong>, <em>italic</em>, <code>monospace</code>, and
+<a href="https://example.org/">links</a> like anything else.</dd>
+</dl>
+<p>A term may be defined on the line below rather than beside it:</p>
+<dl>
+<dt>standalone</dt>
+<dd>The definition begins here.</dd>
+</dl>
+<p>Because the delimiter needs a following space, a block image is unambiguous
+and needs no ordering rule to stay one:</p>
+<figure><img src="diagram.png" alt="A diagram"></figure>

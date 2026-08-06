@@ -1,4 +1,4 @@
-:doctitle: cl-adoc
+= cl-adoc
 
 ----
            88                              88
