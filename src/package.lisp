@@ -47,6 +47,13 @@
    #:list-item-p
    #:list-item-content
    #:list-item-checked
+   #:description-list
+   #:description-list-p
+   #:description-list-items
+   #:description-item
+   #:description-item-p
+   #:description-item-term
+   #:description-item-definition
    #:block-image
    #:block-image-p
    #:block-image-target

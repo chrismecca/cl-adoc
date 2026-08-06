@@ -31,6 +31,13 @@ a method here, and a new leaf type needs nothing.")
 (defmethod node-children ((node unordered-list)) (unordered-list-items node))
 (defmethod node-children ((node ordered-list)) (ordered-list-items node))
 (defmethod node-children ((node list-item)) (list-item-content node))
+(defmethod node-children ((node description-list))
+  (description-list-items node))
+(defmethod node-children ((node description-item))
+  ;; A term can hold a link or a code span as readily as a definition can, so
+  ;; both halves are walked. Returning only the definition would hide half of
+  ;; every description list from every caller.
+  (append (description-item-term node) (description-item-definition node)))
 (defmethod node-children ((node strong)) (strong-content node))
 (defmethod node-children ((node emphasis)) (emphasis-content node))
 (defmethod node-children ((node link)) (link-content node))

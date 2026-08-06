@@ -1,10 +1,14 @@
-:doctitle: cl-adoc language specification
-
-= cl-adoc v1
+= cl-adoc v2
 
 This document defines the subset of the AsciiDoc language that cl-adoc
 parses and renders. It is versioned independently of the cl-adoc library
-itself. Additions live in v2, v3, and so on — this file describes v1 only.
+itself. This file describes v2, which is v1 plus description lists and
+is otherwise unchanged.
+
+Description lists were added because the first real consumer needed them:
+anchor's own specification uses them throughout, and anchor is meant to be
+able to render it. A construct a document set actually reaches for is the
+only reason this subset ever grows.
 
 Status markers used below:
 
@@ -48,6 +52,21 @@ Status markers used below:
 
 * Unordered lists, single marker: `*`
 * Ordered lists, single marker: `.`
+* Description lists, written `term:: definition`. The delimiter is the
+  first `::` followed by a space or by the end of the line, with a term in
+  front of it
+* Because the delimiter needs that following space, `image::path[alt]` is
+  never a description item — a block macro puts its target hard against
+  its colons and an item never does. One rule separates them, rather than
+  an ordering between two
+* The same rule lets a term contain colons, so `` `:date:`:: `` reads as
+  the term it looks like
+* A definition soft-wraps like a list item, and a term may be written with
+  nothing after the delimiter and defined on the lines below
+* A line whose prose happens to contain `::` followed by a space opens a
+  description item. There is no escape for that yet. Rationale: double
+  colons followed by a space are rare in prose, and a documented limit is
+  worth more than an escape nobody has needed
 * Checklists (`[ ]`, `[x]`, `[X]`) — note: literal bracket text at the start
   of a list item must be escaped (`\[ ]`), since this exact position is
   where checklist syntax is recognized.

@@ -43,8 +43,21 @@ applied to it, which is the whole point of the construct."
 
 ;; Ordered and unordered lists are separate types rather than one type with a
 ;; flag. They render to different elements, and keeping them apart means the
-;; backend dispatches instead of branching -- which is also what leaves room
-;; for description lists to arrive later as a third type.
+;; backend dispatches instead of branching -- which is what left room for the
+;; description list below to arrive as a third type rather than as a flag on
+;; an existing one.
+
+(defstruct (description-list (:include node))
+  "A list of terms and what they mean. ITEMS is a list of DESCRIPTION-ITEM."
+  (items nil :type list))
+
+(defstruct (description-item (:include node))
+  "One term and its definition, each a list of inline nodes.
+Two slots rather than reusing LIST-ITEM's one, because a term and a definition
+are different things that render to different elements. A list item has
+content; this has a pair."
+  (term nil :type list)
+  (definition nil :type list))
 
 (defstruct (block-stem (:include node))
   "A block of mathematics. TEXT is the notation exactly as written; cl-adoc

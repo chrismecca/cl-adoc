@@ -169,6 +169,20 @@ it needs to suppress the bullet that would otherwise sit beside the box."
 (defmethod render-node ((node ordered-list) (backend html5) stream)
   (render-item-list "ol" (ordered-list-items node) backend stream))
 
+(defmethod render-node ((node description-list) (backend html5) stream)
+  (write-string "<dl>" stream)
+  (terpri stream)
+  (render-children (description-list-items node) backend stream)
+  (format stream "</dl>~%"))
+
+(defmethod render-node ((node description-item) (backend html5) stream)
+  (write-string "<dt>" stream)
+  (render-children (description-item-term node) backend stream)
+  (format stream "</dt>~%")
+  (write-string "<dd>" stream)
+  (render-children (description-item-definition node) backend stream)
+  (format stream "</dd>~%"))
+
 (defmethod render-node ((node list-item) (backend html5) stream)
   (write-string "<li>" stream)
   (let ((checked (list-item-checked node)))

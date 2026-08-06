@@ -108,3 +108,64 @@ where checklist syntax is recognised."
     (is = 3 (adoc:node-line (second blocks)))
     (is = 3 (adoc:node-line (first items)))
     (is = 4 (adoc:node-line (second items)))))
+
+(define-test (lists description)
+  (is string= "<dl>
+<dt>term</dt>
+<dd>what it means</dd>
+<dt>other</dt>
+<dd>something else</dd>
+</dl>
+" (render (format nil "term:: what it means~%other:: something else"))))
+
+(define-test (lists description-delimiter-needs-a-following-space)
+  :description "The rule that separates a description item from a block image.
+A block macro puts its target hard against the colons and an item never does,
+so one rule tells them apart with no ordering trick behind it."
+  (is string= "<figure><img src=\"diagram.svg\" alt=\"A diagram\"></figure>
+" (render "image::diagram.svg[A diagram]"))
+  ;; The same word, with a space, is an ordinary term.
+  (is string= "<dl>
+<dt>image</dt>
+<dd>a picture</dd>
+</dl>
+" (render "image:: a picture")))
+
+(define-test (lists description-terms-may-contain-colons)
+  :description "The delimiter is the first :: with a space after it, not the
+first colon, so a term that is itself a colon-wrapped attribute survives."
+  (is string= "<dl>
+<dt><code>:date:</code></dt>
+<dd>ISO 8601</dd>
+</dl>
+" (render "`:date:`:: ISO 8601")))
+
+(define-test (lists description-soft-wraps)
+  :description "A definition continues onto following lines the way a list
+item does, so a term may carry nothing and be defined underneath."
+  (is string= "<dl>
+<dt>term</dt>
+<dd>one line
+and another</dd>
+</dl>
+" (render (format nil "term:: one line~%  and another")))
+  (is string= "<dl>
+<dt>term</dt>
+<dd>defined below</dd>
+</dl>
+" (render (format nil "term::~%  defined below"))))
+
+(define-test (lists description-ends-a-paragraph)
+  :description "A description item is a block boundary, which is what stops it
+being swallowed by the prose above it."
+  (is string= "<p>Prose above.</p>
+<dl>
+<dt>term</dt>
+<dd>meaning</dd>
+</dl>
+" (render (format nil "Prose above.~%term:: meaning"))))
+
+(define-test (lists description-needs-a-term)
+  :description "A line opening with the delimiter has nothing to define."
+  (is string= "<p>:: not a term</p>
+" (render ":: not a term")))

@@ -122,6 +122,37 @@ separates a block macro from a line of prose that merely mentions one."
               (values (subseq line prefix-length open)
                       (subseq line (1+ open) close)))))))))
 
+(defparameter +description-delimiter+ "::"
+  "Delimiter separating a term from its definition.")
+
+(defun description-delimiter-position (line)
+  "Position of the :: that opens a description item in LINE, or NIL.
+
+The delimiter is the first :: that is followed by a space or by the end of
+the line, and that has a term in front of it. That single rule is what keeps
+image::path[alt] an image: a block macro puts its target hard against the
+colons, and a description item never does. It also means a term may itself
+contain colons, so `:date:`:: is read the way it is written."
+  (loop with limit = (length line)
+        for position = (search +description-delimiter+ line)
+          then (search +description-delimiter+ line :start2 (1+ position))
+        while position
+        for after = (+ position 2)
+        when (and (plusp position)
+                  (or (= after limit) (char= (char line after) #\Space)))
+          return position))
+
+(defun parse-description-line (line)
+  "Return the term and the definition text of LINE, or NIL if it opens none."
+  (when line
+    (let ((position (description-delimiter-position line)))
+      (when position
+        (let ((term (trim-whitespace (subseq line 0 position))))
+          (when (plusp (length term))
+            (values term
+                    (trim-whitespace (subseq line (min (length line)
+                                                       (+ position 2)))))))))))
+
 (defun block-boundary-p (line)
   "True when LINE cannot be a continuation of the paragraph in progress."
   (or (blank-line-p line)
@@ -132,6 +163,7 @@ separates a block macro from a line of prose that merely mentions one."
       (and (parse-admonition-line line) t)
       (and (parse-quoted-line line) t)
       (and (parse-block-image-line line) t)
+      (and (parse-description-line line) t)
       (stem-delimiter-p line)
       (and (block-attribute-line line) t)))
 
@@ -310,6 +342,34 @@ The state is :CHECKED, :UNCHECKED, or NIL when TEXT opens with no checkbox."
           (make-ordered-list :line line-number :items items)
           (make-unordered-list :line line-number :items items)))))
 
+(defun read-description-item (reader)
+  "Consume one term and its definition, including any soft-wrapped lines."
+  (let ((line-number (current-line-number reader)))
+    (multiple-value-bind (term definition)
+        (parse-description-line (next-line reader))
+      (let ((collected (if (plusp (length definition)) (list definition) '())))
+        ;; A definition continues the same way a list item does, so a term may
+        ;; be followed by nothing and have its definition on the lines below.
+        (loop for line = (peek-line reader)
+              until (or (null line) (block-boundary-p line))
+              do (push (trim-whitespace (next-line reader)) collected))
+        (make-description-item
+         :line line-number
+         :term (parse-inline term)
+         :definition (parse-inline
+                      (format nil "~{~a~^~%~}" (nreverse collected))))))))
+
+(defun read-description-list (reader)
+  "Consume a run of description items from READER as a single list."
+  (let ((line-number (current-line-number reader))
+        (items '()))
+    (loop
+      (push (read-description-item reader) items)
+      (skip-blank-lines reader)
+      (unless (parse-description-line (peek-line reader))
+        (return)))
+    (make-description-list :line line-number :items (nreverse items))))
+
 ;;; Header and body
 
 (defun attribute-line-p (line)
@@ -373,6 +433,10 @@ it, and it ends at the first line that is neither."
                              (read-list reader nil))
                             ((ordered-item-p line)
                              (read-list reader t))
+                            ;; After the block image, whose target sits hard
+                            ;; against its own colons and so never matches.
+                            ((parse-description-line line)
+                             (read-description-list reader))
                             (t
                              (read-paragraph reader)))
                       blocks)

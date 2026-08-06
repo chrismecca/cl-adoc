@@ -1,9 +1,35 @@
-:doctitle: cl-adoc changelog
-
 = Changelog
 
 Notable changes to cl-adoc. The library is versioned independently of
 SPEC.adoc, which describes the language subset.
+
+== 0.2.0
+
+=== Language
+
+Description lists, written `term:: definition`, taking the language subset
+to v2. The delimiter is the first `::` followed by a space or by the end of
+the line, which is also what keeps `image::path[alt]` a block image: a macro
+puts its target hard against its colons and a description item never does.
+The same rule lets a term hold colons of its own, so `` `:date:`:: `` reads
+as written. Definitions soft-wrap like list items, and a term may be defined
+on the lines below it.
+
+Added because a consumer needed it rather than for completeness. anchor's
+specification uses description lists throughout and anchor is meant to be
+able to render its own specification, which it could not.
+
+=== Interface
+
+`description-list` and `description-item`, with `description-item-term` and
+`description-item-definition`. Both halves of an item are walked by
+`node-children`, since a term can hold a link or a code span as readily as a
+definition can.
+
+=== Known limits
+
+A line of prose that happens to contain `::` followed by a space opens a
+description item, and there is no escape for it. Recorded in SPEC.adoc.
 
 == 0.1.0
 
