@@ -1,4 +1,4 @@
-A listing block holds its contents verbatim.
+A listing block keeps its contents literal.
 
 [source,lisp]
 ----
@@ -6,7 +6,9 @@ A listing block holds its contents verbatim.
   (format t "hello, ~a~%" name))
 ----
 
-Without a language attribute the block is still literal, just untagged.
+A listing block without a language attribute is still literal.
+
+It has no language class.
 
 ----
 *not bold*  _not italic_  <not a tag>

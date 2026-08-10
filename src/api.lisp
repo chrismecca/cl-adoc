@@ -1,13 +1,16 @@
 ;;;; The public interface.
 ;;;;
-;;;; Parsing and rendering are separate calls on purpose. A caller that wants
-;;;; the attributes of a document, or a table of contents, or its word count,
-;;;; should not have to render it to get them.
+;;;; Parsing and rendering are separate operations.
+;;;;
+;;;; A caller can inspect a document without rendering it. For example, it can
+;;;; read attributes, build a table of contents, or count words.
 
 (in-package #:adoc)
 
 (defun parse-string (string)
-  "Parse STRING as an AsciiDoc document and return a DOCUMENT."
+  "Parse STRING as an AsciiDoc document.
+
+Return a DOCUMENT."
   (let ((reader (make-line-reader string)))
     (multiple-value-bind (title attributes) (read-header reader)
       (make-document :title title
@@ -15,13 +18,17 @@
                      :blocks (read-blocks reader)))))
 
 (defun parse-file (path)
-  "Parse the file at PATH as an AsciiDoc document and return a DOCUMENT."
+  "Parse the file at PATH as an AsciiDoc document.
+
+Return a DOCUMENT."
   (parse-string (uiop:read-file-string path)))
 
 (defun render-html (document &optional stream)
   "Render DOCUMENT as an HTML5 fragment.
-Writes to STREAM when one is supplied and returns NIL; otherwise returns the
-fragment as a string."
+
+When STREAM is supplied, write to STREAM and return NIL.
+
+When STREAM is not supplied, return the fragment as a string."
   (let ((backend (make-instance 'html5)))
     (if stream
         (render-node document backend stream)

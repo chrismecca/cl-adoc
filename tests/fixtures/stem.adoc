@@ -1,28 +1,38 @@
 = Mathematics
 
-Mathematics inside a line is written stem:[E = mc^2], and its notation is
-taken literally: stem:[a_1 * b_2] keeps both the underscore and the asterisk
-that the inline grammar would otherwise claim.
+Inline mathematics is written with `stem:[...]`.
 
-A block of mathematics stands between delimiters:
+The notation is literal:
+
+stem:[E = mc^2]
+
+stem:[a_1 * b_2]
+
+The underscore and asterisk stay in the notation. They are not parsed as inline
+markup.
+
+A mathematics block uses `++++` delimiters:
 
 ++++
 \sum_{i=1}^n i = \frac{n(n+1)}{2}
 ++++
 
-The attribute may be written out, which says exactly what the bare delimiter
-already said:
+The `[stem]` attribute can also be written.
+
+It has the same meaning as a bare `++++` delimiter:
 
 [stem]
 ++++
 e^{i\pi} + 1 = 0
 ++++
 
-A passthrough block asks for its contents to reach the page untouched:
+A passthrough block sends its contents to the output unchanged:
 
 [pass]
 ++++
 <aside class="hand-written">Markup cl-adoc did not generate.</aside>
 ++++
 
-Everything else keeps escaping its output, so a < b stays readable.
+Other text is still escaped during rendering.
+
+For example, a < b stays readable.

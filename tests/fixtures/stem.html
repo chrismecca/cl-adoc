@@ -1,12 +1,16 @@
 <h1>Mathematics</h1>
-<p>Mathematics inside a line is written <span class="stem">\(E = mc^2\)</span>, and its notation is
-taken literally: <span class="stem">\(a_1 * b_2\)</span> keeps both the underscore and the asterisk
-that the inline grammar would otherwise claim.</p>
-<p>A block of mathematics stands between delimiters:</p>
+<p>Inline mathematics is written with <code>stem:[...]</code>.</p>
+<p>The notation is literal:</p>
+<p><span class="stem">\(E = mc^2\)</span></p>
+<p><span class="stem">\(a_1 * b_2\)</span></p>
+<p>The underscore and asterisk stay in the notation. They are not parsed as inline
+markup.</p>
+<p>A mathematics block uses <code>++++</code> delimiters:</p>
 <div class="stem">\[\sum_{i=1}^n i = \frac{n(n+1)}{2}\]</div>
-<p>The attribute may be written out, which says exactly what the bare delimiter
-already said:</p>
+<p>The <code>[stem]</code> attribute can also be written.</p>
+<p>It has the same meaning as a bare <code>++++</code> delimiter:</p>
 <div class="stem">\[e^{i\pi} + 1 = 0\]</div>
-<p>A passthrough block asks for its contents to reach the page untouched:</p>
+<p>A passthrough block sends its contents to the output unchanged:</p>
 <aside class="hand-written">Markup cl-adoc did not generate.</aside>
-<p>Everything else keeps escaping its output, so a &lt; b stays readable.</p>
+<p>Other text is still escaped during rendering.</p>
+<p>For example, a &lt; b stays readable.</p>

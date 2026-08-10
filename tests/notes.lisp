@@ -29,12 +29,12 @@
         (is eq (cdr pair) (adoc:admonition-kind block) "~a" (car pair))))))
 
 (define-test (notes labels-are-matched-exactly)
-  :description "A near miss is prose, not an admonition."
+  :description "A near match is prose, not an admonition."
   (is string= "<p>NOTES: this is prose.</p>
 " (render "NOTES: this is prose."))
   (is string= "<p>Note: also prose.</p>
 " (render "Note: also prose."))
-  ;; The space after the colon is part of the marker.
+  ;; The marker includes the space after the colon.
   (is string= "<p>NOTE:no space</p>
 " (render "NOTE:no space")))
 
@@ -58,8 +58,7 @@ and another</p>
 " (render "> a quote with *bold*")))
 
 (define-test (notes a-bare-marker-separates-paragraphs)
-  :description "A lone > inside a quotation ends one paragraph and starts the
-next, rather than folding both into a single run of text."
+  :description "A lone `>` inside a quotation separates paragraphs."
   (is string= "<blockquote>
 <p>first</p>
 <p>second</p>

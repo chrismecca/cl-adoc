@@ -1,22 +1,26 @@
-;;;; Reading a parsed document.
+;;;; Query functions for parsed documents.
 ;;;;
-;;;; Parsing produces a tree; rendering consumes one. Everything else a caller
-;;;; wants to do -- build a table of contents, decide whether a page needs a
-;;;; mathematics renderer loaded, check that every image on a page actually
-;;;; exists -- is the same operation underneath: walk the tree and collect.
+;;;; Parsing creates a tree. Rendering consumes a tree.
 ;;;;
-;;;; That walk belongs here rather than in each caller, because it has to know
-;;;; every node type. A caller that writes its own breaks quietly the next time
-;;;; cl-adoc learns a construct, and the way it breaks is by silently walking
-;;;; less of the document than it used to.
+;;;; Other tasks also need the tree. For example, a caller can build a table of
+;;;; contents, check whether a page needs a math renderer, or find broken image
+;;;; targets.
+;;;;
+;;;; Those tasks all need traversal.
+;;;;
+;;;; Traversal belongs here because it must know every node type. If each caller
+;;;; writes its own traversal, it can miss new node types when cl-adoc grows.
 
 (in-package #:adoc)
 
 (defgeneric node-children (node)
   (:documentation
-   "Return the child nodes of NODE, or NIL when it has none.
-This is the extension point for the traversal below: a new container type needs
-a method here, and a new leaf type needs nothing.")
+   "Return the child nodes of NODE.
+
+Return NIL when NODE has no children.
+
+This is the extension point for traversal. A new container node needs a method
+here. A new leaf node needs no method.")
   (:method (node)
     (declare (ignore node))
     nil))
@@ -34,17 +38,19 @@ a method here, and a new leaf type needs nothing.")
 (defmethod node-children ((node description-list))
   (description-list-items node))
 (defmethod node-children ((node description-item))
-  ;; A term can hold a link or a code span as readily as a definition can, so
-  ;; both halves are walked. Returning only the definition would hide half of
-  ;; every description list from every caller.
+  ;; Walk both the term and the definition.
+  ;;
+  ;; A term can contain inline nodes, such as links and code spans. Walking
+  ;; only the definition would hide part of the document from callers.
   (append (description-item-term node) (description-item-definition node)))
 (defmethod node-children ((node strong)) (strong-content node))
 (defmethod node-children ((node emphasis)) (emphasis-content node))
 (defmethod node-children ((node link)) (link-content node))
 
 (defun map-nodes (function root)
-  "Call FUNCTION on ROOT and on every node beneath it, in document order.
-ROOT may be a single node or a list of them, since several slots hold lists."
+  "Call FUNCTION on ROOT and each node below it, in document order.
+
+ROOT can be one node or a list of nodes."
   (if (listp root)
       (dolist (each root)
         (map-nodes function each))
@@ -55,7 +61,9 @@ ROOT may be a single node or a list of them, since several slots hold lists."
   (values))
 
 (defun collect-nodes (predicate root)
-  "Return every node at or beneath ROOT satisfying PREDICATE, in document order."
+  "Return all nodes at or below ROOT that satisfy PREDICATE.
+
+Nodes are returned in document order."
   (let ((found '()))
     (map-nodes (lambda (node)
                  (when (funcall predicate node)
@@ -64,7 +72,9 @@ ROOT may be a single node or a list of them, since several slots hold lists."
     (nreverse found)))
 
 (defun find-node (predicate root)
-  "Return the first node at or beneath ROOT satisfying PREDICATE, or NIL."
+  "Return the first node at or below ROOT that satisfies PREDICATE.
+
+Return NIL when no node matches."
   (block searching
     (map-nodes (lambda (node)
                  (when (funcall predicate node)
@@ -73,8 +83,10 @@ ROOT may be a single node or a list of them, since several slots hold lists."
     nil))
 
 (defun node-text (root)
-  "Return the text of ROOT with all markup removed.
-An image contributes its alt text, which is the only part of it that is words."
+  "Return the text of ROOT with markup removed.
+
+An image contributes its alt text. That is the image text available to the
+document."
   (with-output-to-string (out)
     (map-nodes (lambda (node)
                  (typecase node
@@ -87,9 +99,10 @@ An image contributes its alt text, which is the only part of it that is words."
 ;;; Identifiers
 
 (defun slugify (string)
-  "Reduce STRING to a lowercase identifier suitable for a fragment link.
-Runs of characters that are neither letters nor digits collapse to a single
-hyphen, and leading and trailing hyphens are dropped."
+  "Reduce STRING to a lowercase fragment identifier.
+
+Runs of non-alphanumeric characters become one hyphen. Leading and trailing
+hyphens are removed."
   (let ((slug (make-string-output-stream))
         (pending-hyphen nil)
         (seen-content nil))
@@ -107,24 +120,21 @@ hyphen, and leading and trailing hyphens are dropped."
 (defun heading-id (heading)
   "Return the generated identifier for HEADING.
 
-Exported, and used by the HTML backend rather than duplicated inside it: a
-table of contents has to emit exactly the anchors the renderer emits, and
-deriving them in two places is how the two drift apart."
+This function is exported and used by the HTML backend. A table of contents can
+therefore use the same anchors as the renderer."
   (slugify (node-text heading)))
 
-;;; Questions worth asking of a whole document
+;;; Document-level queries
 
 (defun document-headings (document)
   "Return every heading in DOCUMENT, in document order."
   (collect-nodes #'heading-p document))
 
 (defun document-uses-stem-p (document)
-  "True when DOCUMENT contains mathematics anywhere in it.
+  "Return true when DOCUMENT contains mathematics.
 
-This is worth a function of its own because the obvious version is wrong.
-Inline mathematics lives inside a paragraph's content, so a caller scanning
-only the top-level blocks finds every display equation and misses every
-expression written in the middle of a sentence."
+This function checks the full tree. Inline mathematics can appear inside a
+paragraph, so scanning only top-level blocks is not sufficient."
   (and (find-node (lambda (node)
                     (or (block-stem-p node) (inline-stem-p node)))
                   document)
@@ -132,8 +142,8 @@ expression written in the middle of a sentence."
 
 (defun document-references (document)
   "Return every node in DOCUMENT that names an external target.
-That is links and both forms of image, which together are what a build has to
-check before it can claim a page has no broken references."
+
+This includes links, inline images, and block images."
   (collect-nodes (lambda (node)
                    (or (link-p node)
                        (inline-image-p node)

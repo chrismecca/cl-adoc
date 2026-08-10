@@ -1,32 +1,35 @@
 = Admonitions and Quotations
 
-Each of the five admonition labels opens a single paragraph:
+Each admonition label opens one paragraph:
 
-NOTE: A note carries an aside the reader can skip.
+NOTE: A note gives extra information.
 
-TIP: A tip is advice rather than information.
+TIP: A tip gives advice.
 
-WARNING: A warning is about something that can go wrong.
+WARNING: A warning describes something that can go wrong.
 
-IMPORTANT: An important point is one that is easy to miss.
+IMPORTANT: An important point is easy to miss.
 
-CAUTION: A caution asks for care rather than alarm.
+CAUTION: A caution asks the reader to take care.
 
-The label has to match exactly, so NOTES: this line is ordinary prose, and so
-is this one, which merely mentions NOTE: in passing.
+The label must match exactly.
 
-Admonitions carry inline content like anything else:
+NOTES: this line is prose.
 
-TIP: Run `make test` before you push, and read
+This line only mentions NOTE: in passing.
+
+Admonitions can contain inline content:
+
+TIP: Run `make test` before you push. Read
 link:https://example.com/ci[the CI logs] when it fails.
 
-Quotations are prefixed line by line:
+A quotation line starts with `>` followed by a space:
 
-> The best way to have a good idea is to have a lot of ideas.
-> Most of them will be wrong.
+> The first quoted line.
+> The second quoted line.
 
-A bare marker separates one paragraph of a quotation from the next:
+A bare `>` separates paragraphs inside a quotation:
 
 > First, the claim.
 >
-> Then, the qualification that makes it survivable.
+> Then, the qualification.

@@ -1,14 +1,17 @@
 ;;;; Golden-file tests.
 ;;;;
-;;;; Each fixture is a pair: NAME.adoc holds the input and NAME.html holds the
-;;;; output it is expected to produce. Adding a case means adding two files and
-;;;; no code, which is the point -- the corpus is meant to grow every time the
-;;;; parser learns a construct or gets a bug report.
+;;;; Each fixture has two files:
 ;;;;
-;;;; The expected files are checked in and reviewed like any other source. They
-;;;; are not regenerated as part of a test run: a golden file that rewrites
-;;;; itself when the output changes records whatever the parser did last, which
-;;;; is the opposite of what it is for.
+;;;; * NAME.adoc is the input.
+;;;; * NAME.html is the expected output.
+;;;;
+;;;; To add a case, add both files. No test code must change.
+;;;;
+;;;; The fixture set should grow when the parser gets a feature or a bug fix.
+;;;;
+;;;; Expected output files are source files. Review them like other source
+;;;; files. Do not regenerate them during a test run. A golden file that updates
+;;;; itself records the parser's last output, not the correct output.
 
 (in-package #:adoc/tests)
 
@@ -16,14 +19,16 @@
   (asdf:system-relative-pathname "cl-adoc" "tests/fixtures/"))
 
 (defun fixture-inputs ()
-  "Return every fixture input, ordered by name for a stable report."
+  "Return all fixture inputs.
+
+Sort them by name so test reports are stable."
   (sort (directory (merge-pathnames "*.adoc" (fixture-directory)))
         #'string< :key #'pathname-name))
 
 (defun trailing-whitespace-trimmed (string)
   "Return STRING without trailing whitespace.
-Keeps the comparison from turning into an argument about how an editor saves
-the last line of a file."
+
+This keeps the comparison independent of editor behavior at the end of a file."
   (string-right-trim '(#\Space #\Tab #\Newline #\Return) string))
 
 (define-test golden)

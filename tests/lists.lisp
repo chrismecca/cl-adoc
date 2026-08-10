@@ -1,4 +1,4 @@
-;;;; Tests for lists.
+;;;; Tests for list parsing.
 
 (in-package #:adoc/tests)
 
@@ -19,12 +19,10 @@
 " (render (format nil ". first~%. second"))))
 
 (define-test (lists a-marker-needs-a-following-space)
-  :description "Bold at the start of a line is a paragraph, not a bullet.
-The marker rule is what disambiguates them, and it is the reason the SPEC
-excludes hyphen markers."
+  :description "A list marker must be followed by a space."
   (is string= "<p><strong>bold</strong> leads this line</p>
 " (render "*bold* leads this line"))
-  ;; A lone asterisk is not a marker either.
+  ;; A lone asterisk is not a list marker.
   (is string= "<p>*</p>
 " (render "*")))
 
@@ -35,8 +33,7 @@ excludes hyphen markers."
 " (render "* an item with `code` and *bold*")))
 
 (define-test (lists soft-wrapped-items)
-  :description "An item continues onto following lines, and the indentation
-used to line them up is not content."
+  :description "A list item can continue on later lines. Alignment spaces are not content."
   (let ((document (adoc:parse-string (format nil "* an item that~%  wraps~%* another"))))
     (is = 1 (length (adoc:document-blocks document)))
     (is = 2 (length (adoc:unordered-list-items (first (adoc:document-blocks document))))))
@@ -47,7 +44,7 @@ wraps</li>
 " (render (format nil "* an item that~%  wraps"))))
 
 (define-test (lists blank-lines-between-items)
-  :description "A blank line between items does not start a second list."
+  :description "A blank line between items does not start a new list."
   (let ((blocks (adoc:document-blocks (adoc:parse-string (format nil "* one~%~%* two")))))
     (is = 1 (length blocks))
     (is = 2 (length (adoc:unordered-list-items (first blocks))))))
@@ -58,15 +55,15 @@ wraps</li>
     (is = 2 (length blocks))
     (true (adoc:unordered-list-p (first blocks)))
     (true (adoc:heading-p (second blocks))))
-  ;; Switching marker starts a new list rather than extending the old one.
+  ;; A different marker starts a new list.
+  ;; It does not extend the current list.
   (let ((blocks (adoc:document-blocks (adoc:parse-string (format nil "* one~%. two")))))
     (is = 2 (length blocks))
     (true (adoc:unordered-list-p (first blocks)))
     (true (adoc:ordered-list-p (second blocks)))))
 
 (define-test (lists a-list-ends-a-paragraph)
-  :description "A list opening on the next line closes the paragraph above it,
-with no blank line required."
+  :description "A list opener ends the paragraph above it, even without a blank line."
   (let ((blocks (adoc:document-blocks (adoc:parse-string (format nil "Some prose.~%* item")))))
     (is = 2 (length blocks))
     (true (adoc:paragraph-p (first blocks)))
@@ -78,24 +75,24 @@ with no blank line required."
 <li><input type=\"checkbox\" disabled> todo</li>
 </ul>
 " (render (format nil "* [x] done~%* [ ] todo")))
-  ;; An uppercase X marks an item too.
+  ;; Uppercase X also marks a checked item.
   (let ((items (adoc:unordered-list-items
                 (first (adoc:document-blocks (adoc:parse-string "* [X] done"))))))
     (is eq :checked (adoc:list-item-checked (first items))))
-  ;; A list with no checkbox anywhere is not marked as a checklist.
+  ;; A list with no checkbox does not get the checklist class.
   (is string= "<ul>
 <li>plain</li>
 </ul>
 " (render "* plain")))
 
 (define-test (lists escaped-checkbox)
-  :description "A backslash keeps the bracket literal at the one position
-where checklist syntax is recognised."
+  :description "A backslash keeps `[` literal where checklist syntax is read."
   (is string= "<ul>
 <li>[ ] literal brackets</li>
 </ul>
 " (render "* \\[ ] literal brackets"))
-  ;; A bracket group that is not a word of its own was never a checkbox.
+  ;; A bracket group must be its own word.
+  ;; `[x]y` is not a checkbox.
   (is string= "<ul>
 <li>[x]y is not a checkbox</li>
 </ul>
@@ -119,12 +116,10 @@ where checklist syntax is recognised."
 " (render (format nil "term:: what it means~%other:: something else"))))
 
 (define-test (lists description-delimiter-needs-a-following-space)
-  :description "The rule that separates a description item from a block image.
-A block macro puts its target hard against the colons and an item never does,
-so one rule tells them apart with no ordering trick behind it."
+  :description "A description delimiter must be followed by a space or by end of line."
   (is string= "<figure><img src=\"diagram.svg\" alt=\"A diagram\"></figure>
 " (render "image::diagram.svg[A diagram]"))
-  ;; The same word, with a space, is an ordinary term.
+  ;; With a space after `::`, `image` is a description term.
   (is string= "<dl>
 <dt>image</dt>
 <dd>a picture</dd>
@@ -132,8 +127,7 @@ so one rule tells them apart with no ordering trick behind it."
 " (render "image:: a picture")))
 
 (define-test (lists description-terms-may-contain-colons)
-  :description "The delimiter is the first :: with a space after it, not the
-first colon, so a term that is itself a colon-wrapped attribute survives."
+  :description "The delimiter is the first `::` followed by a space or end of line."
   (is string= "<dl>
 <dt><code>:date:</code></dt>
 <dd>ISO 8601</dd>
@@ -141,8 +135,7 @@ first colon, so a term that is itself a colon-wrapped attribute survives."
 " (render "`:date:`:: ISO 8601")))
 
 (define-test (lists description-soft-wraps)
-  :description "A definition continues onto following lines the way a list
-item does, so a term may carry nothing and be defined underneath."
+  :description "A definition can continue on later lines."
   (is string= "<dl>
 <dt>term</dt>
 <dd>one line
@@ -156,8 +149,7 @@ and another</dd>
 " (render (format nil "term::~%  defined below"))))
 
 (define-test (lists description-ends-a-paragraph)
-  :description "A description item is a block boundary, which is what stops it
-being swallowed by the prose above it."
+  :description "A description item is a block boundary."
   (is string= "<p>Prose above.</p>
 <dl>
 <dt>term</dt>
@@ -166,6 +158,6 @@ being swallowed by the prose above it."
 " (render (format nil "Prose above.~%term:: meaning"))))
 
 (define-test (lists description-needs-a-term)
-  :description "A line opening with the delimiter has nothing to define."
+  :description "A line that starts with `::` has no term."
   (is string= "<p>:: not a term</p>
 " (render ":: not a term")))

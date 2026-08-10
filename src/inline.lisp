@@ -1,17 +1,18 @@
-;;;; The inline layer.
+;;;; The inline parser.
 ;;;;
-;;;; This is the part of AsciiDoc that genuinely needs a grammar. Formatting
-;;;; spans nest, they can be escaped, and above all they are *constrained*: a
-;;;; delimiter only opens a span at a word boundary. That last rule is why
-;;;; foo_bar_baz is one word and not a fragment wrapped in emphasis.
+;;;; Inline AsciiDoc needs a grammar.
 ;;;;
-;;;; A constrained span cannot be expressed as a string substitution. "Replace
-;;;; _x_ with <em>x</em>" has no way to say "only when the preceding character
-;;;; was not a letter", and once it has rewritten part of the string, the next
-;;;; substitution runs over markup the previous one emitted -- which is how an
-;;;; italic pass ends up eating the underscores inside an already-rendered code
-;;;; span. Parsing to nodes and rendering once removes the entire failure mode:
-;;;; by the time anything is rendered there is no text left to re-scan.
+;;;; Formatting spans can nest. Delimiters can be escaped. A delimiter can
+;;;; start a span only at a word boundary. This keeps `foo_bar_baz` as one word
+;;;; instead of an emphasis span inside text.
+;;;;
+;;;; These rules cannot be implemented safely with string replacement.
+;;;; Replacement code cannot easily say "only match when the previous character
+;;;; is not a letter." It also scans text that earlier replacements already
+;;;; changed.
+;;;;
+;;;; cl-adoc parses inline text into nodes first. Rendering happens later, and
+;;;; only once. Rendered markup is never scanned again.
 
 (in-package #:adoc)
 
@@ -21,15 +22,15 @@
 
 (defrule space-char (or #\Space #\Tab #\Newline))
 
-;; A delimiter may only open a span at a word boundary. At position zero there
-;; is nothing behind the cursor, so the lookbehind fails and ! succeeds --
-;; start of input counts as a boundary without needing a special case.
+;; A delimiter can open a span only at a word boundary.
+;;
+;; At position zero, there is no previous character. The lookbehind fails, so
+;; `!` succeeds. Start of input is therefore a boundary without a special case.
 (defrule left-boundary (! (< 1 word-constituent)))
 
 ;;; Escapes
 ;;;
-;;; A backslash suppresses the character that follows, which is the only way to
-;;; write a literal delimiter next to a word.
+;;; A backslash makes the next delimiter literal.
 
 (defrule escaped
     (and #\\ (or #\* #\_ #\` #\\))
@@ -37,10 +38,17 @@
 
 ;;; Formatting spans
 ;;;
-;;; Each span is: a word boundary, the delimiter, a non-space first character,
-;;; a body, a non-space last character, the delimiter. The two space checks are
-;;; what stop "2 * 3 * 4" from turning half a sentence bold. The trailing one
-;;; is a lookbehind because at that point the body has already been consumed.
+;;; Each formatted span has this form:
+;;;
+;;; * a word boundary
+;;; * an opening delimiter
+;;; * a non-space first character
+;;; * a body
+;;; * a non-space last character
+;;; * a closing delimiter
+;;;
+;;; The space checks keep `2 * 3 * 4` as text. The trailing check is a
+;;; lookbehind because the parser has already consumed the body.
 
 (defrule strong
     (and left-boundary #\* (! space-char) strong-body (< 1 (! space-char)) #\*)
@@ -62,8 +70,9 @@
     (+ (and (! #\_) inline-element))
   (:lambda (items) (coalesce-text (mapcar #'second items))))
 
-;; Monospace is the one span whose body is not parsed. Its contents are taken
-;; verbatim, so a code span survives whatever punctuation it happens to hold.
+;; Monospace is the only span whose body is not parsed.
+;;
+;; Its content is literal, so a code span keeps all punctuation inside it.
 (defrule monospace
     (and left-boundary #\` (! space-char) monospace-body (< 1 (! space-char)) #\`)
   (:destructure (boundary open no-leading-space body no-trailing-space close)
@@ -76,14 +85,13 @@
 
 ;;; Macros
 ;;;
-;;; Every macro ends in a bracketed attribute list, and the block image macro
-;;; in blocks.lisp wants the same thing off a whole line. So the bracket is
-;;; captured here as raw text and split by one function that both layers call,
-;;; rather than each growing its own idea of what a comma means.
+;;; Each macro ends with a bracketed attribute list.
 ;;;
-;;; v1 has no way to escape a closing bracket: the list ends at the first one.
-;;; A link whose text genuinely needs a bracket is a v2 problem, and saying so
-;;; is better than a half-working escape nobody documented.
+;;; Block image macros use the same attribute-list syntax. The block parser
+;;; captures the raw bracket text and calls the same splitter used here.
+;;;
+;;; v1 has no escape for a closing bracket. An attribute list ends at the first
+;;; `]`. A link text value that needs `]` is not supported yet.
 
 (defrule bracketed-text
     (and #\[ (* (and (! #\]) character)) #\])
@@ -92,9 +100,12 @@
     (coerce (mapcar #'second characters) 'string)))
 
 (defun parse-attribute-list (text)
-  "Split TEXT into positional attribute values on commas.
-Returns NIL for an empty list, so `image::photo.png[]` carries no alt text
-rather than carrying an empty one."
+  "Split TEXT into positional attribute values.
+
+Commas separate values.
+
+Return NIL for an empty list. Thus, `image::photo.png[]` has no alt text. It
+does not have empty alt text."
   (let ((values '())
         (start 0))
     (dotimes (index (length text))
@@ -115,13 +126,15 @@ rather than carrying an empty one."
     (declare (ignore boundary prefix))
     (let ((values (parse-attribute-list text)))
       (make-link :target target
-                 ;; link:url[] shows the URL itself.
+                 ;; `link:url[]` displays the URL.
                  :content (if values
                               (parse-inline (first values))
                               (list (make-text :string target)))))))
 
-;; The negative lookahead is what keeps the block form, image::, from being
-;; read as an inline image whose target begins with a colon.
+;; The negative lookahead keeps `image::` as a block image macro.
+;;
+;; Without it, `image::target[alt]` could become an inline image whose target
+;; starts with a colon.
 (defrule inline-image
     (and left-boundary "image:" (! #\:) macro-target bracketed-text)
   (:destructure (boundary prefix not-block target text)
@@ -129,8 +142,9 @@ rather than carrying an empty one."
     (make-inline-image :target target
                        :alt (first (parse-attribute-list text)))))
 
-;; Mathematics is literal for the same reason a code span is: notation is made
-;; of the very characters that mean something to the inline grammar.
+;; Mathematics is literal for the same reason code spans are literal.
+;;
+;; Math notation uses characters that also have meaning in the inline grammar.
 (defrule inline-stem
     (and left-boundary "stem:" bracketed-text)
   (:destructure (boundary prefix text)
@@ -139,13 +153,17 @@ rather than carrying an empty one."
 
 ;;; Autolinks
 ;;;
-;;; The hard part of a bare URL is knowing where it stops. "See https://x.com/a."
-;;; ends in a sentence, not in a path, and trimming the period afterwards is not
-;;; an option -- by then the parser has consumed it and the text has lost it.
+;;; A bare URL must stop before trailing sentence punctuation.
 ;;;
-;;; So the grammar never takes it in the first place: trailing punctuation is
-;;; only part of a URL when another URL character follows it. That makes the
-;;; period in "x.com/a." fall outside the link while the one in "x.com" stays in.
+;;; For example, in `See https://x.com/a.`, the period ends the sentence. It is
+;;; not part of the URL.
+;;;
+;;; The parser must leave that period outside the link before it consumes the
+;;; URL. Trimming it later would lose the punctuation as separate text.
+;;;
+;;; Trailing punctuation is part of the URL only when another URL character
+;;; follows it. This keeps the period in `x.com`, but not the period after
+;;; `x.com/a.`.
 
 (defrule url-scheme (or "https://" "http://"))
 
@@ -169,11 +187,13 @@ rather than carrying an empty one."
 
 ;;; Composition
 ;;;
-;;; Ordered choice does the disambiguation. An escape is recognised before any
-;;; delimiter can open, monospace outranks the other spans so that backticks
-;;; win over their contents, and a bare character is the fallback -- which is
-;;; how an unmatched delimiter degrades to the literal character the author
-;;; typed rather than failing the parse.
+;;; Ordered choice resolves conflicts.
+;;;
+;;; An escape is read before a delimiter can open a span. Monospace is read
+;;; before other spans, so backticks protect their content. A single character
+;;; is the fallback.
+;;;
+;;; An unmatched delimiter therefore stays literal. It does not fail the parse.
 
 (defrule inline-element
     (or escaped monospace link inline-image inline-stem autolink
@@ -186,9 +206,11 @@ rather than carrying an empty one."
 (defun coalesce-text (elements)
   "Merge runs of raw characters in ELEMENTS into TEXT nodes.
 
-The grammar yields a mix of parsed nodes and unclaimed characters, since any
-character that starts no construct falls through to the literal branch. This
-gathers those stragglers so the result is a clean list of inline nodes."
+The grammar returns parsed nodes and unmatched characters. Any character that
+does not start a construct becomes literal text.
+
+This function combines those characters so the result is a list of inline
+nodes."
   (let ((nodes '())
         (buffer (make-string-output-stream)))
     (flet ((flush ()
@@ -197,8 +219,8 @@ gathers those stragglers so the result is a clean list of inline nodes."
                  (push (make-text :string pending) nodes)))))
       (dolist (element elements)
         (etypecase element
-          ;; esrap yields a string for a character terminal and a character for
-          ;; the CHARACTER rule; both are just text at this point.
+          ;; ESRAP returns a string for a character terminal and a character
+          ;; for the CHARACTER rule. Both are text here.
           (character (write-char element buffer))
           (string (write-string element buffer))
           (inline-node (flush) (push element nodes))))
@@ -206,6 +228,5 @@ gathers those stragglers so the result is a clean list of inline nodes."
     (nreverse nodes)))
 
 (defun parse-inline (string)
-  "Parse STRING into a list of inline nodes."
+  "Parse STRING into inline nodes."
   (esrap:parse 'inline-content string))
-

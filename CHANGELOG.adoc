@@ -5,6 +5,19 @@ This file lists notable changes to cl-adoc.
 The cl-adoc library and SPEC.adoc use separate versions. SPEC.adoc defines
 the AsciiDoc subset that cl-adoc parses and renders.
 
+== 0.2.1
+
+=== Documentation
+
+Rewrote project documentation, comments, docstrings, and fixture prose for
+clearer technical English.
+
+No parser behavior changed.
+
+No public Lisp interface changed.
+
+SPEC.adoc still describes language subset v2.
+
 == 0.2.0
 
 === Language

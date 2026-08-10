@@ -1,4 +1,4 @@
-;;;; Tests for reading a parsed document.
+;;;; Tests for parsed-document queries.
 
 (in-package #:adoc/tests)
 
@@ -22,41 +22,39 @@ image::photo.jpg[a photo]
 
 Mathematics stem:[x^2] in a sentence.
 "
-  "A document exercising every container the walker has to descend into.")
+  "A document that contains each container type the walker must enter.")
 
 (define-test (query the-walk-reaches-nested-nodes)
-  :description "Each of these sits at least two containers deep, which is
-where a hand-rolled walk in a caller would quietly stop."
+  :description "The walker reaches nodes inside other containers."
   (let ((document (adoc:parse-string *everything*)))
-    ;; strong inside a paragraph inside the document
+    ;; Strong text inside a paragraph.
     (true (adoc:find-node #'adoc:strong-p document))
-    ;; emphasis inside a list item inside a list
+    ;; Emphasis inside a list item.
     (true (adoc:find-node #'adoc:emphasis-p document))
-    ;; an image inside a list item
+    ;; An image inside a list item.
     (true (adoc:find-node #'adoc:inline-image-p document))
-    ;; a code span inside an admonition
+    ;; A code span inside an admonition.
     (true (adoc:find-node #'adoc:monospace-p document))
-    ;; emphasis inside a paragraph inside a blockquote
+    ;; Emphasis inside a paragraph inside a blockquote.
     (true (adoc:find-node #'adoc:blockquote-p document))
-    ;; and the title, which is not one of the blocks
+    ;; The title is not in DOCUMENT-BLOCKS.
     (true (adoc:find-node #'adoc:heading-p document))))
 
 (define-test (query node-text-removes-markup)
   (is string= "bold text" (adoc:node-text (adoc:parse-string "*bold* text")))
   (is string= "code here" (adoc:node-text (adoc:parse-string "`code` here")))
-  ;; An image contributes its alt text and nothing else.
+  ;; An image contributes only its alt text.
   (is string= "an icon" (adoc:node-text (adoc:parse-string "image:icon.png[an icon]")))
   ;; A link contributes its text, not its target.
   (is string= "the docs" (adoc:node-text (adoc:parse-string "link:https://x.com[the docs]"))))
 
 (define-test (query node-text-accepts-a-list)
-  :description "Several slots hold lists of nodes rather than one node."
+  :description "Some document slots contain node lists."
   (let ((document (adoc:parse-string (format nil "= The Title~%~%Body."))))
     (is string= "The Title" (adoc:node-text (adoc:document-title document)))))
 
 (define-test (query heading-ids-match-what-is-rendered)
-  :description "A table of contents has to emit the anchors the renderer emits.
-Both sides call HEADING-ID, so this asserts they cannot drift."
+  :description "Rendered heading IDs match HEADING-ID."
   (let* ((document (adoc:parse-string "== A Section, With Punctuation!"))
          (heading (first (adoc:document-headings document)))
          (id (adoc:heading-id heading)))
@@ -72,16 +70,15 @@ Both sides call HEADING-ID, so this asserts they cannot drift."
         (mapcar #'adoc:heading-level (adoc:document-headings document)))))
 
 (define-test (query stem-detection-sees-inline-mathematics)
-  :description "The whole reason this is a function. Inline mathematics lives
-inside a paragraph, so scanning only the top-level blocks misses it."
+  :description "Stem detection checks the full tree, not only top-level blocks."
   (let ((document (adoc:parse-string "Only inline stem:[x^2] here.")))
     (true (adoc:document-uses-stem-p document))
-    ;; The mistake this exists to prevent:
+    ;; This is the top-level-only mistake the query prevents.
     (is eq nil (find-if #'adoc:block-stem-p (adoc:document-blocks document))))
-  ;; Display mathematics is found too.
+  ;; Block mathematics is found too.
   (true (adoc:document-uses-stem-p
          (adoc:parse-string (format nil "++++~%x^2~%++++"))))
-  ;; And a document with none says so.
+  ;; A document with no mathematics returns NIL.
   (is eq nil (adoc:document-uses-stem-p (adoc:parse-string "Just prose."))))
 
 (define-test (query references-cover-links-and-both-images)
@@ -91,7 +88,7 @@ inside a paragraph, so scanning only the top-level blocks misses it."
     (is = 3 (length references))
     (is equal '("https://x.com" "a.png" "b.jpg")
         (mapcar #'adoc:reference-target references)))
-  ;; A bare URL is a link, so it is checkable like any other reference.
+  ;; A bare URL is a link, so it is also a reference.
   (is equal '("https://x.com/a")
       (mapcar #'adoc:reference-target
               (adoc:document-references (adoc:parse-string "See https://x.com/a.")))))
@@ -102,7 +99,7 @@ inside a paragraph, so scanning only the top-level blocks misses it."
   (is eq nil (adoc:find-node (constantly nil) (adoc:parse-string "prose"))))
 
 (define-test (query leaf-nodes-have-no-children)
-  :description "None of these carry nodes inside them, so the walk stops here."
+  :description "Leaf nodes stop traversal."
   (dolist (source '("plain text" "`code`" "stem:[x]" "image:a.png[a]"))
     (let ((node (adoc:find-node (lambda (each) (typep each 'adoc:inline-node))
                                 (adoc:parse-string source))))

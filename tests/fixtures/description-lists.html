@@ -1,35 +1,35 @@
 <h1>Description Lists</h1>
-<p>A term and what it means, separated by a double colon:</p>
+<p>A description item has a term and a definition.</p>
+<p>The delimiter is a double colon:</p>
 <dl>
 <dt>term</dt>
-<dd>The definition, on the same line.</dd>
+<dd>The definition can be on the same line.</dd>
 <dt>another term</dt>
-<dd>Terms may hold spaces, so a phrase works as well as a word.</dd>
+<dd>A term can contain spaces.</dd>
 </dl>
-<p>The delimiter is the first <code>::</code> with a space after it, which is why a term
-may itself contain colons:</p>
+<p>The delimiter is the first <code>::</code> followed by a space.</p>
+<p>This lets a term contain colons:</p>
 <dl>
 <dt><code>:date:</code></dt>
-<dd>An attribute name, colons and all, read as it was written.</dd>
+<dd>An attribute name with colons.</dd>
 <dt><code>_media/</code></dt>
-<dd>A directory whose name begins with an underscore.</dd>
+<dd>A directory name that starts with an underscore.</dd>
 </dl>
-<p>A definition may carry inline formatting, and may soft-wrap the way a list
-item does:</p>
+<p>A definition can contain inline formatting.</p>
+<p>A definition can also continue on later lines, like a list item:</p>
 <dl>
 <dt>soft-wrapped</dt>
-<dd>This definition runs onto a second line, indented under the
-term the way prose usually is, and the indentation is presentation rather
-than content.</dd>
+<dd>This definition continues on a second line. The next line is
+indented for alignment. The indentation is not content.</dd>
 <dt>formatted</dt>
-<dd>Definitions hold <strong>bold</strong>, <em>italic</em>, <code>monospace</code>, and
-<a href="https://example.org/">links</a> like anything else.</dd>
+<dd>Definitions can contain <strong>bold</strong>, <em>italic</em>, <code>monospace</code>, and
+<a href="https://example.org/">links</a>.</dd>
 </dl>
-<p>A term may be defined on the line below rather than beside it:</p>
+<p>A term can appear with no definition on the same line:</p>
 <dl>
 <dt>standalone</dt>
-<dd>The definition begins here.</dd>
+<dd>The definition starts here.</dd>
 </dl>
-<p>Because the delimiter needs a following space, a block image is unambiguous
-and needs no ordering rule to stay one:</p>
+<p>A block image is not a description item.</p>
+<p>The image target starts immediately after <code>::</code>, with no following space:</p>
 <figure><img src="diagram.png" alt="A diagram"></figure>

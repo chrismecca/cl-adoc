@@ -1,29 +1,28 @@
 <h1>Lists</h1>
-<p>Unordered lists use a single asterisk marker:</p>
+<p>Unordered lists use the <code>*</code> marker:</p>
 <ul>
 <li>a first item</li>
-<li>a second item, with <code>code</code> and <strong>bold</strong> inside</li>
-<li>a third item that soft-wraps onto
-another line, since prose does not always fit</li>
+<li>a second item with <code>code</code> and <strong>bold</strong></li>
+<li>a third item continues on the next line
+because prose can wrap</li>
 </ul>
-<p>Ordered lists use a single period:</p>
+<p>Ordered lists use the <code>.</code> marker:</p>
 <ol>
 <li>step one</li>
 <li>step two</li>
 </ol>
-<p>Items may be separated by blank lines and still form one list:</p>
+<p>Blank lines can separate items in one list:</p>
 <ul>
 <li>separated</li>
-<li>but together</li>
+<li>but still in one list</li>
 </ul>
 <p>Checklists mark individual items:</p>
 <ul class="checklist">
-<li><input type="checkbox" disabled checked> something finished</li>
-<li><input type="checkbox" disabled> something outstanding</li>
+<li><input type="checkbox" disabled checked> finished</li>
+<li><input type="checkbox" disabled> not finished</li>
 <li>an ordinary item in the same list</li>
 </ul>
-<p>A backslash keeps the bracket literal, since that position is where checklist
-syntax is recognized:</p>
+<p>A backslash keeps <code>[</code> literal where checklist syntax is read:</p>
 <ul>
 <li>[ ] not a checkbox</li>
 </ul>

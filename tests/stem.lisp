@@ -9,24 +9,22 @@
 " (render "Energy is stem:[E = mc^2] exactly.")))
 
 (define-test (stem notation-is-literal)
-  :description "Notation is built from the same characters the inline grammar
-uses, so none of it is read as markup."
+  :description "Math notation is not parsed as inline markup."
   (is string= "<p><span class=\"stem\">\\(a_1 * b_2\\)</span></p>
 " (render "stem:[a_1 * b_2]"))
-  ;; It is still escaped for HTML on the way out.
+  ;; Math text is still escaped when rendered as HTML.
   (is string= "<p><span class=\"stem\">\\(a &lt; b &amp; c\\)</span></p>
 " (render "stem:[a < b & c]")))
 
 (define-test (stem block-form)
   (is string= "<div class=\"stem\">\\[\\sum_{i=1}^n i\\]</div>
 " (render (format nil "++++~%\\sum_{i=1}^n i~%++++")))
-  ;; An explicit [stem] says the same thing as no attribute line at all.
+  ;; `[stem]` has the same meaning as no attribute line.
   (is string= "<div class=\"stem\">\\[x^2\\]</div>
 " (render (format nil "[stem]~%++++~%x^2~%++++"))))
 
 (define-test (stem passthrough)
-  :description "A passthrough block reaches the output untouched, which is the
-one place cl-adoc emits markup it did not write."
+  :description "A passthrough block reaches the output unchanged."
   (is string= "<custom-el a=\"1\"></custom-el>
 " (render (format nil "[pass]~%++++~%<custom-el a=\"1\"></custom-el>~%++++")))
   (let ((block (first (adoc:document-blocks
@@ -35,8 +33,7 @@ one place cl-adoc emits markup it did not write."
     (is string= "<b>x</b>" (adoc:passthrough-text block))))
 
 (define-test (stem a-bare-delimiter-is-mathematics)
-  :description "Asciidoctor defaults a bare ++++ to passthrough; cl-adoc
-defaults it to stem. SPEC.adoc records the deviation."
+  :description "A bare `++++` block is stem, not passthrough."
   (let ((block (first (adoc:document-blocks
                        (adoc:parse-string (format nil "++++~%x~%++++"))))))
     (true (adoc:block-stem-p block))))
@@ -51,13 +48,12 @@ defaults it to stem. SPEC.adoc records the deviation."
   (is eq nil (adoc::block-attribute-line "not an attribute line")))
 
 (define-test (stem source-blocks-still-work)
-  :description "Regression: [source,lang] now goes through the shared
-attribute-line reader rather than its own."
+  :description "`[source,lang]` uses the shared attribute-line reader."
   (let ((block (first (adoc:document-blocks
                        (adoc:parse-string (format nil "[source,lisp]~%----~%(f x)~%----"))))))
     (is string= "lisp" (adoc:listing-language block))
     (is string= "(f x)" (adoc:listing-text block)))
-  ;; [source] with no language leaves the block untagged.
+  ;; `[source]` with no language leaves the block untagged.
   (let ((block (first (adoc:document-blocks
                        (adoc:parse-string (format nil "[source]~%----~%(f x)~%----"))))))
     (is eq nil (adoc:listing-language block))))

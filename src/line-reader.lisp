@@ -1,11 +1,10 @@
-;;;; A cursor over the lines of a document.
+;;;; A cursor over document lines.
 ;;;;
-;;;; AsciiDoc's block grammar is stated in terms of lines: delimiters occupy a
-;;;; line of their own, blocks are separated by blank lines, and an attribute
-;;;; line binds to whatever block follows it. Reading the document as a
-;;;; sequence of lines rather than a sequence of characters is not a shortcut
-;;;; around the grammar -- it is the shape the grammar is written in, and it
-;;;; keeps an accurate line number available for error reporting at no cost.
+;;;; The block grammar is line-based. Delimiters occupy a full line. Blank
+;;;; lines separate blocks. Attribute lines apply to the block that follows.
+;;;;
+;;;; The reader therefore stores lines, not characters. This matches the
+;;;; grammar and keeps line numbers available for error reports.
 
 (in-package #:adoc)
 
@@ -14,9 +13,10 @@
   (index 0 :type fixnum))
 
 (defun strip-carriage-return (line)
-  "Remove a single trailing carriage return from LINE, if present.
-Documents written on Windows arrive with CRLF endings; nothing downstream
-should have to care."
+  "Remove one trailing carriage return from LINE.
+
+This accepts CRLF input. Later parser code does not need to know which line
+ending the document used."
   (let ((length (length line)))
     (if (and (plusp length) (char= (char line (1- length)) #\Return))
         (subseq line 0 (1- length))
@@ -30,7 +30,7 @@ should have to care."
       (when (char= (char string i) #\Newline)
         (vector-push-extend (strip-carriage-return (subseq string start i)) lines)
         (setf start (1+ i))))
-    ;; A trailing newline ends the last line; it does not begin an empty one.
+    ;; A trailing newline ends the last line. It does not start an empty line.
     (when (< start (length string))
       (vector-push-extend (strip-carriage-return (subseq string start)) lines))
     (coerce lines 'simple-vector)))
@@ -40,34 +40,38 @@ should have to care."
   (%make-line-reader (split-lines string)))
 
 (defun exhausted-p (reader)
-  "True when READER has no lines left."
+  "Return true when READER has no lines left."
   (>= (line-reader-index reader) (length (line-reader-lines reader))))
 
 (defun peek-line (reader)
-  "Return the current line without consuming it, or NIL at end of input."
+  "Return the current line without consuming it.
+
+Return NIL at end of input."
   (unless (exhausted-p reader)
     (svref (line-reader-lines reader) (line-reader-index reader))))
 
 (defun next-line (reader)
-  "Consume and return the current line, or NIL at end of input."
+  "Consume and return the current line.
+
+Return NIL at end of input."
   (let ((line (peek-line reader)))
     (when line
       (incf (line-reader-index reader)))
     line))
 
 (defun current-line-number (reader)
-  "Return the one-based number of the line READER is positioned on."
+  "Return the one-based number of the current line."
   (1+ (line-reader-index reader)))
 
 (defun blank-line-p (line)
-  "True when LINE is NIL or contains nothing but whitespace."
+  "Return true when LINE is NIL or only spaces and tabs."
   (or (null line)
       (every (lambda (character)
                (member character '(#\Space #\Tab)))
              line)))
 
 (defun skip-blank-lines (reader)
-  "Advance READER past any run of blank lines."
+  "Advance READER past blank lines."
   (loop while (and (not (exhausted-p reader))
                    (blank-line-p (peek-line reader)))
         do (next-line reader)))

@@ -2,9 +2,11 @@
 :author: Chris Mecca
 :date: 2026-08-04
 
-The header ends at the first line that is neither a title nor an attribute
-entry, so this paragraph is the first block of the body.
+The header has a title and attribute entries.
+
+The header ends at the first line that is not a title or an attribute entry.
+This paragraph is therefore the first body block.
 
 == A Section
 
-Sections carry a generated identifier derived from their text.
+The section gets an identifier from its text.

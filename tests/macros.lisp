@@ -1,4 +1,4 @@
-;;;; Tests for link and image macros, and for bare URLs.
+;;;; Tests for link macros, image macros, and bare URLs.
 
 (in-package #:adoc/tests)
 
@@ -7,10 +7,10 @@
 (define-test (macros link-macro)
   (is string= "<p>See <a href=\"https://example.com\">the docs</a> now.</p>
 " (render "See link:https://example.com[the docs] now."))
-  ;; An empty attribute list shows the target itself.
+  ;; An empty attribute list displays the target.
   (is string= "<p><a href=\"https://example.com\">https://example.com</a></p>
 " (render "link:https://example.com[]"))
-  ;; Link text is inline content like any other.
+  ;; Link text is parsed as inline content.
   (is string= "<p><a href=\"https://x.com\"><strong>bold</strong> text</a></p>
 " (render "link:https://x.com[*bold* text]")))
 
@@ -25,15 +25,14 @@
 " (render "http://example.com")))
 
 (define-test (macros autolinks-stop-before-sentence-punctuation)
-  :description "The classic trap: a URL at the end of a sentence must not eat
-the period. The grammar never consumes it, so it is still there as text."
+  :description "A URL at the end of a sentence must not include the sentence punctuation."
   (is string= "<p><a href=\"https://x.com/a\">https://x.com/a</a>.</p>
 " (render "https://x.com/a."))
   (is string= "<p><a href=\"https://x.com/a\">https://x.com/a</a>, next</p>
 " (render "https://x.com/a, next"))
   (is string= "<p>(<a href=\"https://x.com/a\">https://x.com/a</a>)</p>
 " (render "(https://x.com/a)"))
-  ;; Punctuation inside a URL is kept, because more URL follows it.
+  ;; Punctuation inside a URL is kept when more URL text follows it.
   (is string= "<p><a href=\"https://sub.x.com/a.html\">https://sub.x.com/a.html</a></p>
 " (render "https://sub.x.com/a.html")))
 
@@ -45,7 +44,7 @@ the period. The grammar never consumes it, so it is still there as text."
 (define-test (macros inline-images)
   (is string= "<p>An <img src=\"icon.png\" alt=\"icon\"> inline.</p>
 " (render "An image:icon.png[icon] inline."))
-  ;; An image with no alt text still gets the attribute.
+  ;; An image with no alt text still gets an alt attribute.
   (is string= "<p><img src=\"icon.png\" alt=\"\"></p>
 " (render "image:icon.png[]")))
 
@@ -60,10 +59,10 @@ the period. The grammar never consumes it, so it is still there as text."
     (is string= "A photo" (adoc:block-image-alt block))))
 
 (define-test (macros the-block-form-needs-its-own-line)
-  :description "image:: only opens a block when the bracket closes the line."
+  :description "`image::` opens a block only when the bracket closes the line."
   (is string= "<p>Prose mentioning image::photo.jpg[x] mid-line.</p>
 " (render "Prose mentioning image::photo.jpg[x] mid-line."))
-  ;; And a block image directly under a paragraph closes it.
+  ;; A block image directly after a paragraph ends that paragraph.
   (let ((blocks (adoc:document-blocks
                  (adoc:parse-string (format nil "Some prose.~%image::photo.jpg[]")))))
     (is = 2 (length blocks))
@@ -72,8 +71,7 @@ the period. The grammar never consumes it, so it is still there as text."
     (is = 2 (adoc:node-line (second blocks)))))
 
 (define-test (macros attribute-lists)
-  :description "Values split on commas; only the first is used for alt text
-in v1, and the rest are ignored rather than misread."
+  :description "Attribute values split on commas. v1 uses only the first image attribute as alt text."
   (is equal '("alt" "200") (adoc::parse-attribute-list "alt, 200"))
   (is equal '() (adoc::parse-attribute-list ""))
   (is equal '("alt") (adoc::parse-attribute-list "  alt  "))
@@ -81,7 +79,7 @@ in v1, and the rest are ignored rather than misread."
 " (render "image::p.jpg[alt,200]")))
 
 (define-test (macros a-macro-without-brackets-is-not-a-macro)
-  :description "It degrades to text, and the URL inside it still autolinks."
+  :description "A macro without brackets is text. A URL inside it can still autolink."
   (is string= "<p>link:<a href=\"https://x.com\">https://x.com</a></p>
 " (render "link:https://x.com")))
 

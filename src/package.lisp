@@ -3,11 +3,16 @@
 (defpackage #:adoc
   (:nicknames #:cl-adoc)
   (:use #:cl)
-  ;; esrap's own operators have to be esrap's symbols: an unrecognised head
-  ;; falls through to its semantic-predicate form, which then tries to call
-  ;; the symbol as a function. The operators that collide with COMMON-LISP --
-  ;; *, + and < -- are matched by name instead, so those read as themselves
-  ;; inside a rule and are deliberately absent here.
+  ;; ESRAP rule operators must be ESRAP symbols.
+  ;;
+  ;; If ESRAP sees an unknown rule head, it treats that head as a semantic
+  ;; predicate. It then calls the symbol as a function.
+  ;;
+  ;; The operators `*`, `+`, and `<` conflict with COMMON-LISP symbols. ESRAP
+  ;; matches them by name, so they can stay as COMMON-LISP symbols inside a
+  ;; rule.
+  ;;
+  ;; Do not import those three operators here.
   (:import-from #:esrap #:defrule #:! #:&)
   (:export
    ;; Entry points
@@ -98,7 +103,7 @@
    #:inline-stem-p
    #:inline-stem-text
 
-   ;; Reading a parsed document
+   ;; Document queries
    #:node-children
    #:map-nodes
    #:collect-nodes

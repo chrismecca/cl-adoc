@@ -1,13 +1,14 @@
 ;;;; The HTML5 backend.
 ;;;;
-;;;; Rendering is a generic function taking the node and a backend object, so
-;;;; a second output format is a new set of methods rather than an edit to an
-;;;; existing one. The backend argument is doing real work even with only one
-;;;; backend defined: it is what keeps the tree in ast.lisp from acquiring
-;;;; HTML-specific slots the moment something else needs rendering.
+;;;; Rendering uses a generic function with two inputs: a node and a backend.
+;;;; A new output format can therefore add methods instead of changing the
+;;;; existing renderer.
 ;;;;
-;;;; This file is also the only place escaping happens, and it happens exactly
-;;;; once, on text that has never been anywhere near a markup string.
+;;;; The backend argument is useful even while HTML5 is the only backend. It
+;;;; keeps HTML-specific behavior out of the document tree.
+;;;;
+;;;; This file is the only place where HTML escaping happens. It happens once,
+;;;; while rendering text that has not been mixed with markup.
 
 (in-package #:adoc)
 
@@ -15,14 +16,15 @@
   (:documentation "Base class for output formats."))
 
 (defclass html5 (backend) ()
-  (:documentation "Renders a document as an HTML5 fragment."))
+  (:documentation "Render a document as an HTML5 fragment."))
 
 (defgeneric render-node (node backend stream)
-  (:documentation "Write NODE to STREAM in the format defined by BACKEND."))
+  (:documentation "Write NODE to STREAM using BACKEND."))
 
 (defun escape-text (string stream)
-  "Write STRING to STREAM with the three characters that are markup in HTML
-text content replaced by entities."
+  "Write STRING to STREAM as HTML text content.
+
+Replace `&`, `<`, and `>` with entities."
   (loop for character across string
         do (case character
              (#\& (write-string "&amp;" stream))
@@ -31,7 +33,7 @@ text content replaced by entities."
              (t (write-char character stream)))))
 
 (defun escape-attribute (string stream)
-  "Write STRING to STREAM escaped for use inside a double-quoted attribute."
+  "Write STRING to STREAM for use in a double-quoted HTML attribute."
   (loop for character across string
         do (case character
              (#\& (write-string "&amp;" stream))
@@ -41,7 +43,7 @@ text content replaced by entities."
              (t (write-char character stream)))))
 
 (defun render-children (nodes backend stream)
-  "Render each of NODES to STREAM in order."
+  "Render each node in NODES to STREAM, in order."
   (dolist (node nodes)
     (render-node node backend stream)))
 
@@ -68,10 +70,13 @@ text content replaced by entities."
   (write-string "</a>" stream))
 
 (defun render-image (target alt stream)
-  "Write an img element for TARGET to STREAM.
-A missing alt list and an empty one both produce alt=\"\", since an image with
-no alternative text still needs the attribute to be ignorable by a screen
-reader rather than guessed at from the filename."
+  "Write an `img` element for TARGET to STREAM.
+
+A missing alt value and an empty alt value both render as `alt=\"\"`.
+
+An image with no alternative text still needs the attribute. The empty
+attribute tells a screen reader to ignore the image instead of guessing from
+the file name."
   (write-string "<img src=\"" stream)
   (escape-attribute target stream)
   (write-string "\" alt=\"" stream)
@@ -81,8 +86,9 @@ reader rather than guessed at from the filename."
 (defmethod render-node ((node inline-image) (backend html5) stream)
   (render-image (inline-image-target node) (inline-image-alt node) stream))
 
-;; The \( \) and \[ \] delimiters are what a client-side math renderer looks
-;; for. The class is what tells a page whether it needs to load one at all.
+;; Client-side math renderers look for `\( ... \)` and `\[ ... \]`.
+;;
+;; The `stem` class lets a page decide whether it must load a math renderer.
 (defmethod render-node ((node inline-stem) (backend html5) stream)
   (write-string "<span class=\"stem\">\\(" stream)
   (escape-text (inline-stem-text node) stream)
@@ -115,13 +121,14 @@ reader rather than guessed at from the filename."
   (format stream "\\]</div>~%"))
 
 (defmethod render-node ((node passthrough) (backend html5) stream)
-  ;; Deliberately unescaped. A passthrough block that escaped its contents
-  ;; would be a listing block with extra steps.
+  ;; Passthrough text is deliberately unescaped.
+  ;;
+  ;; An escaped passthrough block would be a listing block.
   (write-string (passthrough-text node) stream)
   (terpri stream))
 
 (defun admonition-title (kind)
-  "Return the human-readable label for an admonition of KIND."
+  "Return the display label for admonition KIND."
   (ecase kind
     (:note "Note")
     (:tip "Tip")
@@ -131,9 +138,10 @@ reader rather than guessed at from the filename."
 
 (defmethod render-node ((node admonition) (backend html5) stream)
   (let ((kind (admonition-kind node)))
-    ;; The label is written into the markup rather than left to a CSS
-    ;; ::before, so it survives anywhere the stylesheet does not reach --
-    ;; a feed reader, reader mode, or plain text.
+    ;; Write the label into the markup.
+    ;;
+    ;; Do not rely on a CSS `::before` rule. Markup survives in feed readers,
+    ;; reader mode, and plain text output where CSS does not apply.
     (format stream "<div class=\"admonition ~(~a~)\">~%" kind)
     (format stream "<p class=\"admonition-label\">~a</p>~%" (admonition-title kind))
     (write-string "<p>" stream)
@@ -146,17 +154,19 @@ reader rather than guessed at from the filename."
   (format stream "</blockquote>~%"))
 
 (defmethod render-node ((node block-image) (backend html5) stream)
-  ;; figure rather than a bare img: a block image is a figure whether or not
-  ;; it has a caption yet, and it gives a caption somewhere to go when the
-  ;; title syntax lands.
+  ;; Use `figure`, not a bare `img`.
+  ;;
+  ;; A block image is a figure even when it does not yet have a caption. This
+  ;; also gives caption text a place to go when title syntax is added.
   (write-string "<figure>" stream)
   (render-image (block-image-target node) (block-image-alt node) stream)
   (format stream "</figure>~%"))
 
 (defun render-item-list (tag items backend stream)
-  "Render ITEMS inside TAG.
-A list holding any checkbox is marked as a checklist, since the caller styling
-it needs to suppress the bullet that would otherwise sit beside the box."
+  "Render ITEMS inside the list element named by TAG.
+
+If any item has a checkbox, add the `checklist` class to the list. CSS can then
+remove the normal bullet beside the checkbox."
   (format stream "<~a~@[ class=\"~a\"~]>~%"
           tag (when (some #'list-item-checked items) "checklist"))
   (dolist (item items)
@@ -187,8 +197,9 @@ it needs to suppress the bullet that would otherwise sit beside the box."
   (write-string "<li>" stream)
   (let ((checked (list-item-checked node)))
     (when checked
-      ;; Disabled, because the checkbox reflects what the document says rather
-      ;; than offering the reader a control.
+      ;; The checkbox is disabled.
+      ;;
+      ;; It shows document state. It is not a reader control.
       (format stream "<input type=\"checkbox\" disabled~:[~; checked~]> "
               (eq checked :checked))))
   (render-children (list-item-content node) backend stream)

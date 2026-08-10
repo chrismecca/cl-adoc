@@ -1,4 +1,4 @@
-;;;; Tests for the block layer and the document header.
+;;;; Tests for block parsing and document headers.
 
 (in-package #:adoc/tests)
 
@@ -29,12 +29,13 @@ Body text.
 ==== Four
 ")))
     (is equal '(2 3 4) (mapcar #'adoc:heading-level (adoc:document-blocks document))))
-  ;; Five equals signs is past what v1 accepts, so the line is ordinary text.
+  ;; Five equals signs do not make a heading.
+  ;; The line is parsed as ordinary text.
   (let ((document (adoc:parse-string "===== Five")))
     (is eq nil (find-if #'adoc:heading-p (adoc:document-blocks document)))))
 
 (define-test (blocks paragraphs)
-  :description "A blank line separates paragraphs; a single newline does not."
+  :description "A blank line separates paragraphs. A single newline does not."
   (let ((document (adoc:parse-string "One line
 and its continuation.
 
@@ -43,8 +44,7 @@ A second paragraph.
     (is = 2 (length (adoc:document-blocks document)))))
 
 (define-test (blocks paragraph-stops-at-a-block)
-  :description "A construct that opens on the next line ends the paragraph,
-even with no blank line between them."
+  :description "A block opener ends the paragraph above it, even without a blank line."
   (let ((document (adoc:parse-string "Some prose.
 ----
 literal
@@ -63,7 +63,8 @@ literal
     (let ((block (first (adoc:document-blocks document))))
       (is string= "lisp" (adoc:listing-language block))
       (is string= "(defun hello () \"hi\")" (adoc:listing-text block))))
-  ;; Without a language the block still renders, just untagged.
+  ;; A listing block without a language still renders.
+  ;; It has no language class.
   (let ((block (first (adoc:document-blocks (adoc:parse-string "----
 plain
 ----
@@ -71,7 +72,7 @@ plain
     (is eq nil (adoc:listing-language block))))
 
 (define-test (blocks listing-contents-are-verbatim)
-  :description "Nothing inside a listing block is treated as markup."
+  :description "Listing block content is not parsed as markup."
   (is string= "<pre><code>*not bold* &lt;tag&gt; _x_</code></pre>
 "
       (render "----
@@ -79,8 +80,7 @@ plain
 ----")))
 
 (define-test (blocks unterminated-listing)
-  :description "An unclosed block reports the line it was opened on, not the
-line the document ran out on."
+  :description "An unclosed block reports the line where it opened."
   (let ((source "Prose.
 
 ----
