@@ -1,6 +1,6 @@
 # cl-adoc
 
-# --noinform is a runtime option, so it has to precede the toplevel options.
+# --noinform is an SBCL runtime option.  Put it before the toplevel options.
 SBCL := sbcl
 LISP := $(SBCL) --noinform --non-interactive
 
@@ -17,7 +17,7 @@ test:
 repl:
 	$(SBCL) --eval '(asdf:load-system :cl-adoc)'
 
-# ASDF caches compiled output outside the tree, so there is nothing to remove
-# here beyond that cache.
+# ASDF stores compiled output outside this tree.
+# Clean only the ASDF cache for this project.
 clean:
 	rm -rf $$HOME/.config/cache/common-lisp/*/$(CURDIR)

@@ -11,24 +11,30 @@ a8"     "" 88 aaaaaaaa ""     `Y8 a8"    `Y88 a8"     "8a a8"     ""
  `"Ybbd8"' 88          `"8bbdP"Y8  `"8bbdP"Y8  `"YbbdP"'   `"Ybbd8"'
 ----
 
-cl-adoc is an AsciiDoc parser and HTML5 renderer for Common Lisp. It is young
-and still finding its shape.
+cl-adoc is an AsciiDoc parser and HTML5 renderer for Common Lisp.
 
-It parses a document into a tree and renders the tree separately, so a caller
-can read a document without rendering it — pull its attributes, build a table
-of contents, check that every image it names exists — and rendering stays one
-pass over a tree that holds no markup of its own.
+The project is new. Some interfaces and behavior can change.
+
+cl-adoc reads an AsciiDoc file into a document tree. It renders that tree in a
+separate step.
+
+This separation lets a program inspect a document without rendering it. For
+example, a program can read document attributes, build a table of contents, or
+check image paths before it creates HTML.
+
+The document tree does not store the original markup. Rendering is one pass over
+the tree.
 
 == Installing
 
-cl-adoc is distributed through ocicl. Within a project directory:
+cl-adoc is distributed with ocicl. From a project directory, run:
 
 ----
 ocicl install cl-adoc
 ----
 
-To work against unreleased changes instead, clone the repository into a
-directory ASDF searches and load it from there.
+To use unreleased changes, clone this repository into a directory that ASDF
+searches. Then load the system from that directory.
 
 == Using it
 
@@ -43,46 +49,71 @@ directory ASDF searches and load it from there.
 (adoc:render-html *document*)
 ----
 
-Parsing and rendering are separate calls on purpose. A caller that wants the
-date out of a document should not have to render it to get one.
+Parsing and rendering are separate operations. You can get information from a
+document without rendering it.
 
-The same tree answers the questions a build tends to ask:
+For example:
 
 [source,lisp]
 ----
-(adoc:document-headings *document*)     ; for a table of contents
-(adoc:heading-id heading)               ; the anchor the renderer will emit
-(adoc:document-uses-stem-p *document*)  ; does this page need a math renderer
-(adoc:document-references *document*)   ; every link and image target
+(adoc:document-headings *document*)     ; headings for a table of contents
+(adoc:heading-id heading)               ; anchor used by the HTML renderer
+(adoc:document-uses-stem-p *document*)  ; true if the document uses stem content
+(adoc:document-references *document*)   ; link and image targets
 ----
 
-`adoc:map-nodes`, `adoc:collect-nodes` and `adoc:find-node` walk the whole
-tree, blocks and inline alike, if you need something the list above does not
-cover.
+Use these functions to walk the full tree:
 
-== What it supports
+[source,lisp]
+----
+(adoc:map-nodes ...)
+(adoc:collect-nodes ...)
+(adoc:find-node ...)
+----
 
-The subset of AsciiDoc that cl-adoc parses, and what is deliberately left out
-and why, is documented in SPEC.adoc. That document is versioned separately
-from the library, and its markers say which parts are implemented today.
+They visit block nodes and inline nodes.
+
+== Supported AsciiDoc
+
+SPEC.adoc describes the AsciiDoc features that cl-adoc supports.
+
+It also lists features that cl-adoc does not support, and explains why they are
+not supported.
+
+SPEC.adoc is versioned separately from the library. Its markers show which
+parts are implemented.
 
 == Requirements
 
-cl-adoc is built and tested on SBCL, against the versions Ubuntu packages in
-24.04 and 26.04 — 2.2.9 and 2.6.0. Other implementations are untested rather
-than unsupported. Building it needs ocicl.
+cl-adoc is built and tested on SBCL.
 
-== A note on trust
+The tested SBCL versions are the versions packaged by Ubuntu 24.04 and Ubuntu
+26.04:
 
-cl-adoc assumes it is rendering documents you control. Link and image targets
-are written into the output as they were written in the source, so a document
-from somewhere else can produce a link with a `javascript:` target. If you
-render documents you did not write, filter targets yourself before handing
-them to cl-adoc or after taking the HTML back.
+* SBCL 2.2.9
+* SBCL 2.6.0
+
+Other Common Lisp implementations are not tested.
+
+Building cl-adoc requires ocicl.
+
+== Security
+
+Use cl-adoc with documents that you control.
+
+cl-adoc writes link targets and image targets to the output as they appear in
+the source document. For example, a source document can contain a link target
+that starts with `javascript:`. cl-adoc does not remove or change that target.
+
+If you render documents from another source, filter link targets and image
+targets yourself. You can filter them before rendering, or you can filter the
+HTML after rendering.
 
 == Stability
 
-The library is at 0.x. The Lisp interface may still change between releases.
+cl-adoc is a 0.x library.
+
+The Lisp interface can change between releases.
 
 == License
 

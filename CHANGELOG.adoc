@@ -1,35 +1,66 @@
 = Changelog
 
-Notable changes to cl-adoc. The library is versioned independently of
-SPEC.adoc, which describes the language subset.
+This file lists notable changes to cl-adoc.
+
+The cl-adoc library and SPEC.adoc use separate versions. SPEC.adoc defines
+the AsciiDoc subset that cl-adoc parses and renders.
 
 == 0.2.0
 
 === Language
 
-Description lists, written `term:: definition`, taking the language subset
-to v2. The delimiter is the first `::` followed by a space or by the end of
-the line, which is also what keeps `image::path[alt]` a block image: a macro
-puts its target hard against its colons and a description item never does.
-The same rule lets a term hold colons of its own, so `` `:date:`:: `` reads
-as written. Definitions soft-wrap like list items, and a term may be defined
-on the lines below it.
+Added description lists.
 
-Added because a consumer needed it rather than for completeness. anchor's
-specification uses description lists throughout and anchor is meant to be
-able to render its own specification, which it could not.
+A description item has this form:
+
+----
+term:: definition
+----
+
+The delimiter is the first `::` followed by one of these:
+
+* a space
+* the end of the line
+
+This rule keeps `image::path[alt]` as a block image macro. In a macro, the
+target starts immediately after the colons. In a description item, a space or
+the end of the line follows the colons.
+
+The same rule lets a term contain colons. For example, `` `:date:`:: `` is
+read as the term `` `:date:` ``.
+
+A definition can continue on later lines, like a list item.
+
+A term can also appear with no definition on the same line. In that case, the
+definition starts on the following lines.
+
+Description lists were added because a consumer needed them. The anchor
+specification uses description lists throughout. anchor is also meant to render
+its own specification. Before this release, it could not do that.
 
 === Interface
 
-`description-list` and `description-item`, with `description-item-term` and
-`description-item-definition`. Both halves of an item are walked by
-`node-children`, since a term can hold a link or a code span as readily as a
-definition can.
+Added these node types:
+
+* `description-list`
+* `description-item`
+
+Added these accessors:
+
+* `description-item-term`
+* `description-item-definition`
+
+`node-children` walks both the term and the definition.
+
+A term can contain inline nodes, such as links and code spans. A definition can
+contain them too.
 
 === Known limits
 
-A line of prose that happens to contain `::` followed by a space opens a
-description item, and there is no escape for it. Recorded in SPEC.adoc.
+A prose line that contains `::` followed by a space starts a description item.
+There is no escape for this case yet.
+
+This limit is recorded in SPEC.adoc.
 
 == 0.1.0
 
@@ -37,34 +68,81 @@ First release.
 
 === Language
 
-Document headers with a title and `:key: value` attribute entries. Section
-headings through four levels, with generated identifiers. Paragraphs. Bold,
-italic and monospace, constrained so that `snake_case_name` and `2 * 3 * 4`
-are left alone, with backslash escapes for the delimiters. Unordered, ordered
-and checklist items. Link and image macros, inline and block, and autolinks
-for bare `http://` and `https://` URLs. Admonitions and blockquotes. Listing
-blocks, source blocks with a language, mathematics inline and in blocks, and
-passthrough blocks.
+Added the first language subset.
 
-The full subset, including what is deliberately excluded and why, is in
-SPEC.adoc. Roughly a dozen entries there are still marked as planned.
+This release supports:
+
+* document headers with a title
+* `:key: value` document attributes
+* section headings through four levels
+* generated section IDs
+* paragraphs
+* bold text
+* italic text
+* monospace text
+* backslash escapes for inline formatting delimiters
+* unordered lists
+* ordered lists
+* checklist items
+* link macros
+* image macros
+* inline image macros
+* block image macros
+* autolinks for bare `http://` and `https://` URLs
+* admonitions
+* blockquotes
+* listing blocks
+* source blocks with a language
+* inline mathematics
+* mathematics blocks
+* passthrough blocks
+
+Bold, italic, and monospace spans use constrained delimiter rules. These rules
+leave names such as `snake_case_name` unchanged. They also leave arithmetic such
+as `2 * 3 * 4` unchanged.
+
+SPEC.adoc defines the full subset. It also lists excluded features and explains
+why they are excluded.
+
+About a dozen SPEC.adoc entries are still marked as planned.
 
 === Interface
 
-`parse-string` and `parse-file` produce a document; `render-html` renders one.
-`map-nodes`, `collect-nodes` and `find-node` walk a parsed document, and
-`node-text`, `heading-id`, `document-headings`, `document-uses-stem-p`,
-`document-references` and `reference-target` answer the questions a build
-tends to ask of one.
+Added `parse-string` and `parse-file`. Each function returns a document.
 
-Rendering dispatches on a backend object, so a second output format is a set
-of methods rather than an edit to an existing one.
+Added `render-html`. It renders a document as HTML.
+
+Added these tree-walk functions:
+
+* `map-nodes`
+* `collect-nodes`
+* `find-node`
+
+Added these query functions:
+
+* `node-text`
+* `heading-id`
+* `document-headings`
+* `document-uses-stem-p`
+* `document-references`
+* `reference-target`
+
+These functions answer the questions that a build usually needs to ask about a
+document.
+
+Rendering dispatches on a backend object. A second output format can therefore
+be added as a set of methods. It does not require changes to the existing HTML
+renderer.
 
 === Known limits
 
-Attribute lists end at the first `]`; there is no way to escape one inside
-them, which also caps what inline `stem:[...]` can hold. A bare `++++` block
-is mathematics here, where Asciidoctor treats it as passthrough — `[pass]`
-asks for passthrough explicitly. Code spans are literal, where Asciidoctor
-applies formatting inside them. Each of these is recorded in SPEC.adoc with
-its reasoning.
+Attribute lists end at the first `]`. There is no way to escape `]` inside an
+attribute list. This also limits what inline `stem:[...]` can contain.
+
+A bare `++++` block is mathematics in cl-adoc. Asciidoctor treats the same block
+as passthrough. Use `[pass]` to request passthrough in cl-adoc.
+
+Code spans are literal in cl-adoc. Asciidoctor applies formatting inside code
+spans.
+
+Each limit is recorded in SPEC.adoc with its reason.
