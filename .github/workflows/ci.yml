@@ -36,8 +36,19 @@ jobs:
       - name: Record the toolchain under test
         run: sbcl --version
 
+      # Downloads from ghcr.io can be reset mid-transfer, which fails the run.
+      # ocicl.csv pins every digest, so a cache keyed on its hash holds exactly
+      # what a fresh download would. The key also has the OS so the two jobs
+      # do not race to save the same entry.
+      - name: Cache dependencies
+        uses: actions/cache@v6
+        with:
+          path: ocicl
+          key: ocicl-${{ matrix.os }}-${{ hashFiles('ocicl.csv') }}
+
       # Installs the exact digests pinned in ocicl.csv, so a green run means
-      # the committed lockfile is sufficient to build the project.
+      # the committed lockfile is sufficient to build the project. After a
+      # cache hit, ocicl finds every system present and downloads nothing.
       - name: Install dependencies
         run: ocicl install
 
