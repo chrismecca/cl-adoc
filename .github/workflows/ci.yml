@@ -10,14 +10,14 @@ jobs:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      # Both results are wanted: the pair is here to bracket a version range,
+      # Both results are wanted: each job tests a different SBCL version,
       # so one failing should not cancel the other.
       fail-fast: false
       matrix:
-        # Ubuntu 24.04 packages SBCL 2.2.9 and 26.04 packages 2.6.0, which
-        # brackets the "SBCL 2.4 or later" claim in README.adoc from both
-        # sides. The runner labels are pinned rather than tracking
-        # ubuntu-latest so the tested versions only change deliberately.
+        # Ubuntu 24.04 packages SBCL 2.2.9 and 26.04 packages 2.6.0. These are
+        # the tested versions listed under Requirements in README.adoc. The
+        # runner labels are pinned rather than tracking ubuntu-latest so the
+        # tested versions only change deliberately.
         os: [ubuntu-24.04, ubuntu-26.04]
 
     steps:
