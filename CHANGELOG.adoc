@@ -5,7 +5,31 @@ This file lists notable changes to cl-adoc.
 The cl-adoc library and SPEC.adoc use separate versions. SPEC.adoc defines
 the AsciiDoc subset that cl-adoc parses and renders.
 
-== 0.2.1
+== Unreleased
+
+=== Fixed
+
+A bracketed line such as `[aside]` or `[1.2.0]` was read as a block attribute
+line. Attribute lines are not nodes, so its text was dropped from the
+document. It also ended the paragraph it appeared in.
+
+Now only `source`, `stem`, and `pass` make an attribute line. Any other
+bracketed line is ordinary text.
+
+=== Language
+
+A recognized attribute line must be followed by a block it applies to.
+Otherwise, parsing signals `syntax-error` at the attribute line.
+
+Before this change, the attribute was silently ignored. For example,
+`[source,lisp]` above a paragraph and `[pass]` above a `----` block both had
+no effect.
+
+Documents that relied on that behavior now fail to parse. The error names the
+line to fix.
+
+SPEC.adoc records both rules in the Blocks section.
+
 
 === Documentation
 

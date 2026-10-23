@@ -101,3 +101,40 @@ First paragraph.
 "))))
     (is = 3 (adoc:node-line (first blocks)))
     (is = 5 (adoc:node-line (second blocks)))))
+
+(define-test (blocks unknown-bracket-lines-are-text)
+  :description "A bracketed line is an attribute line only for a known name."
+  (is string= "<p>Some prose.
+[aside]
+more prose.</p>
+" (render (format nil "Some prose.~%[aside]~%more prose.")))
+  (is string= "<p>[1.2.0]</p>
+" (render "[1.2.0]"))
+  (is string= "<p>[]</p>
+" (render "[]"))
+  ;; Known names are matched without regard to case.
+  (is string= "lisp" (adoc:listing-language
+                      (first (adoc:document-blocks
+                              (adoc:parse-string (format nil "[SOURCE,lisp]~%----~%x~%----")))))))
+
+(defun syntax-error-line-of (source)
+  "Return the line of the syntax error that parsing SOURCE signals.
+
+Return NIL when parsing succeeds."
+  (handler-case (progn (adoc:parse-string source) nil)
+    (adoc:syntax-error (condition) (adoc:syntax-error-line condition))))
+
+(define-test (blocks misplaced-attributes)
+  :description "A known attribute line must be followed by a block it applies to."
+  ;; The wrong kind of block.
+  (is eql 1 (syntax-error-line-of (format nil "[source,lisp]~%A paragraph.")))
+  (is eql 1 (syntax-error-line-of (format nil "[pass]~%----~%x~%----")))
+  (is eql 1 (syntax-error-line-of (format nil "[source,lisp]~%++++~%x~%++++")))
+  ;; No block at all.
+  (is eql 3 (syntax-error-line-of (format nil "Prose.~%~%[stem]")))
+  ;; A second attribute line leaves the first with no block.
+  (is eql 1 (syntax-error-line-of (format nil "[source,lisp]~%[stem]~%++++~%x~%++++")))
+  ;; The error names the attribute.
+  (let ((condition (handler-case (adoc:parse-string (format nil "[pass]~%Prose."))
+                     (adoc:syntax-error (c) c))))
+    (true (search "[pass]" (adoc:syntax-error-message condition)))))
