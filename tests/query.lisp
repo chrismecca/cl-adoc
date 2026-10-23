@@ -16,7 +16,7 @@ An opening paragraph with *bold* and link:https://example.com[a link].
 
 NOTE: an admonition with `code`.
 
-> a quotation with *emphasis of its own*
+> a quotation with *bold of its own*
 
 image::photo.jpg[a photo]
 
@@ -35,10 +35,19 @@ Mathematics stem:[x^2] in a sentence.
     (true (adoc:find-node #'adoc:inline-image-p document))
     ;; A code span inside an admonition.
     (true (adoc:find-node #'adoc:monospace-p document))
-    ;; Emphasis inside a paragraph inside a blockquote.
-    (true (adoc:find-node #'adoc:blockquote-p document))
-    ;; The title is not in DOCUMENT-BLOCKS.
-    (true (adoc:find-node #'adoc:heading-p document))))
+    ;; Strong text inside a paragraph inside a blockquote.
+    ;;
+    ;; The opening paragraph also has strong text, so search only the
+    ;; blockquote.
+    (true (adoc:find-node #'adoc:strong-p
+                          (adoc:find-node #'adoc:blockquote-p document)))
+    ;; Title text.
+    ;;
+    ;; The title is not in DOCUMENT-BLOCKS, and it is not a HEADING node.
+    (true (adoc:find-node (lambda (node)
+                            (and (adoc:text-p node)
+                                 (string= "The Title" (adoc:text-string node))))
+                          document))))
 
 (define-test (query node-text-removes-markup)
   (is string= "bold text" (adoc:node-text (adoc:parse-string "*bold* text")))
