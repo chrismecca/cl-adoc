@@ -4,7 +4,7 @@
   :description "An AsciiDoc parser and HTML5 renderer."
   :author "Chris Mecca"
   :license "MIT"
-  :version "0.2.1"
+  :version "0.3.0"
   :homepage "https://github.com/chrismecca/cl-adoc"
   :depends-on ("esrap")
   :serial t
