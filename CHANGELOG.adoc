@@ -5,7 +5,10 @@ This file lists notable changes to cl-adoc.
 The cl-adoc library and SPEC.adoc use separate versions. SPEC.adoc defines
 the AsciiDoc subset that cl-adoc parses and renders.
 
-== Unreleased
+== 0.3.0
+
+This release changes parser behavior. A document that parsed under 0.2.x can
+now fail with `syntax-error`. See Language below.
 
 === Fixed
 
@@ -15,6 +18,10 @@ document. It also ended the paragraph it appeared in.
 
 Now only `source`, `stem`, and `pass` make an attribute line. Any other
 bracketed line is ordinary text.
+
+`make clean` removed nothing. It looked under `~/.config/cache`, but ASDF
+stores compiled files under `$XDG_CACHE_HOME`, or `~/.cache` when that is not
+set.
 
 === Language
 
@@ -30,6 +37,7 @@ line to fix.
 
 SPEC.adoc records both rules in the Blocks section.
 
+== 0.2.1
 
 === Documentation
 
