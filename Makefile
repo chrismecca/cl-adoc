@@ -17,7 +17,7 @@ test:
 repl:
 	$(SBCL) --eval '(asdf:load-system :cl-adoc)'
 
-# ASDF stores compiled output outside this tree.
-# Clean only the ASDF cache for this project.
+# ASDF stores compiled output outside this tree, under $XDG_CACHE_HOME
+# (default ~/.cache).  Clean only the ASDF cache for this project.
 clean:
-	rm -rf $$HOME/.config/cache/common-lisp/*/$(CURDIR)
+	rm -rf $${XDG_CACHE_HOME:-$$HOME/.cache}/common-lisp/*$(CURDIR)
