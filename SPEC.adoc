@@ -209,6 +209,28 @@ common.
 * `[stem]` can be written above a `++++` block.
 +
 It states what the bare delimiter already means.
+* Block attribute lines
++
+An attribute line is a bracketed list alone on a line, above the block it
+configures. cl-adoc recognizes these names:
++
+** `source`, above a `----` block
+** `stem`, above a `++++` block
+** `pass`, above a `++++` block
++
+Names are matched without regard to case.
+* A bracketed line with any other first value is ordinary text.
++
+For example, a line that contains only `[1.2.0]` is part of a paragraph.
+* A recognized attribute line must be followed by a block it applies to.
++
+Otherwise, parsing fails with an error at the attribute line. For example,
+`[source,lisp]` above a paragraph is an error. So is `[pass]` above a `----`
+block, an attribute line at the end of the document, or two attribute lines in
+a row.
++
+Reason: An attribute that is silently dropped hides an author's mistake. The
+error names the line to fix.
 * Inline `stem:[...]` ends at the first `]`.
 +
 If notation contains a closing bracket, write it in a block instead of inline.

@@ -47,17 +47,26 @@ A heading is one to four equals signs, one space, and a title."
   "Return true when LINE opens or closes a stem or passthrough block."
   (delimiter-line-p line +stem-delimiter+))
 
+(defparameter +block-attribute-names+ '("source" "stem" "pass")
+  "First values that make a bracketed line a block attribute line.")
+
 (defun block-attribute-line (line)
   "Return T and the values when LINE is a block attribute line.
 
 All block attributes use this parser. For example, `[source,lisp]`, `[stem]`,
-and `[pass]` differ only in their values."
+and `[pass]` differ only in their values.
+
+The first value must be in +BLOCK-ATTRIBUTE-NAMES+. Any other bracketed line,
+such as `[1.2.0]`, is prose. An attribute line is not a node, so recognizing
+an unknown name here would drop that line from the document."
   (let ((trimmed (and line (trim-whitespace line))))
     (when (and trimmed
                (>= (length trimmed) 2)
                (char= (char trimmed 0) #\[)
                (char= (char trimmed (1- (length trimmed))) #\]))
-      (values t (parse-attribute-list (subseq trimmed 1 (1- (length trimmed))))))))
+      (let ((values (parse-attribute-list (subseq trimmed 1 (1- (length trimmed))))))
+        (when (member (first values) +block-attribute-names+ :test #'equalp)
+          (values t values))))))
 
 (defun attribute-named-p (attributes name)
   "Return true when the first value in ATTRIBUTES is NAME.
@@ -243,8 +252,7 @@ The delimiter is used for two constructs.
 `[pass]` makes the block passthrough text. The body reaches the output
 unchanged.
 
-All other cases make the block mathematics. This includes `[stem]` and a bare
-delimiter.
+`[stem]` and a bare delimiter make the block mathematics.
 
 Asciidoctor uses a different default. It treats a bare `++++` block as
 passthrough. cl-adoc treats it as mathematics because math is the main reason
@@ -461,22 +469,51 @@ the first line that is neither a title nor an attribute."
                (next-line reader)))
     (values title attributes)))
 
+(defun attributes-apply-p (attributes line)
+  "Return true when ATTRIBUTES can configure the block that LINE opens."
+  (cond ((listing-delimiter-p line)
+         (attribute-named-p attributes "source"))
+        ((stem-delimiter-p line)
+         (or (attribute-named-p attributes "stem")
+             (attribute-named-p attributes "pass")))))
+
+(defun misplaced-attributes (attributes line-number)
+  "Signal that the attribute line at LINE-NUMBER has no block to configure."
+  (error 'syntax-error
+         :line line-number
+         :message (format nil "Block attribute [~{~a~^,~}] is not followed by a block it applies to"
+                          attributes)))
+
 (defun read-blocks (reader)
   "Consume all remaining blocks from READER."
   (let ((blocks '())
-        (pending-attributes nil))
+        (pending-attributes nil)
+        (pending-line nil))
     (loop
       (skip-blank-lines reader)
       (let ((line (peek-line reader)))
         (when (null line)
+          (when pending-line
+            (misplaced-attributes pending-attributes pending-line))
           (return))
         (multiple-value-bind (attribute-line values) (block-attribute-line line)
           (if attribute-line
               ;; An attribute line configures the next block.
               ;; It is not a node.
-              (progn (setf pending-attributes values)
+              ;;
+              ;; A second attribute line would replace the first one. The
+              ;; first one would then configure nothing.
+              (progn (when pending-line
+                       (misplaced-attributes pending-attributes pending-line))
+                     (setf pending-attributes values
+                           pending-line (current-line-number reader))
                      (next-line reader))
               (progn
+                ;; An attribute that does not fit the next block is an
+                ;; author's mistake. Report it instead of ignoring it.
+                (when (and pending-line
+                           (not (attributes-apply-p pending-attributes line)))
+                  (misplaced-attributes pending-attributes pending-line))
                 (push (cond ((listing-delimiter-p line)
                              (read-listing reader pending-attributes))
                             ((stem-delimiter-p line)
@@ -504,5 +541,6 @@ the first line that is neither a title nor an attribute."
                              (read-paragraph reader)))
                       blocks)
                 ;; An attribute applies only to the next block.
-                (setf pending-attributes nil))))))
+                (setf pending-attributes nil
+                      pending-line nil))))))
     (nreverse blocks)))

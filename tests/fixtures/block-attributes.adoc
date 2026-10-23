@@ -1,0 +1,18 @@
+= Block Attributes
+
+An attribute line configures the block below it:
+
+[source,lisp]
+----
+(+ 1 2)
+----
+
+Only the names `source`, `stem`, and `pass` make an attribute line.
+
+A bracketed line with any other name is ordinary text:
+
+[1.2.0]
+
+It can also sit inside a paragraph.
+[aside]
+The paragraph continues past it.
